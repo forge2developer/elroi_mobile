@@ -226,7 +226,7 @@ export default function UserManagementScreen() {
                 <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1">
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Text className="text-[17px] font-bold flex-1" style={[{ color: theme.text }]}>Manage Users</Text>
+                <Text className="text-[17px] font-bold flex-1" style={[{ color: theme.text }]}>User Management</Text>
                 <Pressable className="p-1">
                     <Bell size={20} color={theme.iconColor} />
                 </Pressable>
@@ -236,7 +236,8 @@ export default function UserManagementScreen() {
                 {/* Search & Actions Bar */}
                 <View className="px-3 pt-3 pb-1 flex-row items-center gap-2">
                     <View
-                        className="flex-1 flex-row items-center px-3 h-10 rounded-xl border"
+                        className="flex-1 flex-row items-center px-3 h-11.5
+                         rounded-xl border"
                         style={[{ backgroundColor: theme.cardBg, borderColor: theme.border }]}
                     >
                         <Search size={16} color={theme.iconColor} />
@@ -252,13 +253,13 @@ export default function UserManagementScreen() {
 
                     {isAdmin && (
                         <Pressable
-                            className="h-10 px-3 rounded-xl flex-row items-center justify-center gap-1.5"
+                            className="h-9 px-3 rounded-xl flex-row items-center justify-center gap-1.5"
                             style={[{ backgroundColor: theme.accent }]}
                             onPress={() => {
                                 // navigation.navigate('add-user'); // Add navigation later
                             }}
                         >
-                            <Text className="text-[13px] font-semibold" style={[{ color: theme.text2 }]}>Add User</Text>
+                            <Text className="text-[12px] font-semibold" style={[{ color: theme.text2 }]}>Add User</Text>
                         </Pressable>
                     )}
                 </View>
