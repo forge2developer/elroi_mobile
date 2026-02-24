@@ -1,0 +1,40 @@
+import Sidebar from '@/components/sidebar/Sidebar';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Drawer } from 'expo-router/drawer';
+import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+export default function DrawerLayout() {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
+
+    return (
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <Drawer
+                drawerContent={() => <Sidebar />}
+                screenOptions={{
+                    headerShown: false,
+                    drawerType: 'front',
+                    drawerStyle: {
+                        width: 280,
+                        backgroundColor: isDark ? '#0a0a0a' : '#ffffff',
+                        borderRightWidth: 1,
+                        borderRightColor: isDark ? '#333333' : '#e2e8f0',
+                    },
+                    swipeEnabled: true,
+                }}
+            >
+                <Drawer.Screen name="dashboard" options={{ title: 'Dashboard' }} />
+                <Drawer.Screen name="leads" options={{ title: 'Leads' }} />
+                <Drawer.Screen name="add-lead" options={{ title: 'Add New Lead' }} />
+                <Drawer.Screen name="inventory" options={{ title: 'Inventory' }} />
+                <Drawer.Screen name="settings" options={{ title: 'Settings' }} />
+                <Drawer.Screen name="calendar" options={{ title: 'Calendar' }} />
+                <Drawer.Screen name="sales" options={{ title: 'Sales & Marketing' }} />
+                <Drawer.Screen name="travel" options={{ title: 'Travel' }} />
+                <Drawer.Screen name="more" options={{ title: 'More' }} />
+                <Drawer.Screen name="profile" options={{ title: 'Profile' }} />
+            </Drawer>
+        </GestureHandlerRootView>
+    );
+}
