@@ -75,28 +75,6 @@ const MENU_SECTIONS: Section[] = [
                     //  { label: 'Add Project', route: '/(drawer)/inventory/new' },
                 ],
             },
-            {
-                icon: PieChart,
-                label: 'Reports',
-                subItems: [
-                    { label: 'General Reports', route: '/(drawer)/reports/general' },
-                    { label: 'Lead Stage Analysis', route: '/(drawer)/reports/lead-stage' },
-                ],
-            },
-        ],
-    },
-    {
-        title: 'General',
-        items: [
-            // {
-            //     icon: Settings,
-            //     label: 'Settings',
-            //     route: '/(drawer)/settings'
-            // },
-            { icon: Calendar, label: 'Calendar', route: '/(drawer)/calendar' },
-            { icon: Clock, label: 'Sales & Marketing', route: '/(drawer)/sales' },
-            { icon: Plane, label: 'Travel', route: '/(drawer)/travel' },
-            { icon: MoreHorizontal, label: 'More', route: '/(drawer)/more' },
         ],
     },
 ];

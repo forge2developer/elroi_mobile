@@ -28,11 +28,6 @@ export default function DrawerLayout() {
                 <Drawer.Screen name="leads" options={{ title: 'Leads' }} />
                 <Drawer.Screen name="add-lead" options={{ title: 'Add New Lead' }} />
                 <Drawer.Screen name="inventory" options={{ title: 'Inventory' }} />
-                <Drawer.Screen name="settings" options={{ title: 'Settings' }} />
-                <Drawer.Screen name="calendar" options={{ title: 'Calendar' }} />
-                <Drawer.Screen name="sales" options={{ title: 'Sales & Marketing' }} />
-                <Drawer.Screen name="travel" options={{ title: 'Travel' }} />
-                <Drawer.Screen name="more" options={{ title: 'More' }} />
                 <Drawer.Screen name="profile" options={{ title: 'Profile' }} />
             </Drawer>
         </GestureHandlerRootView>

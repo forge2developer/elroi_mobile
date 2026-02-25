@@ -383,7 +383,12 @@ export default function FilterDrawer({
     };
 
     const handleApply = () => {
-        onApply(filters);
+        const trimmedFilters = {
+            ...filters,
+            campaign: filters.campaign?.trim() || '',
+            name: filters.name?.trim() || '',
+        };
+        onApply(trimmedFilters);
         onClose();
     };
 

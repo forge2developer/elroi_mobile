@@ -73,7 +73,7 @@ function StatusBadge({ status }: { status?: string }) {
     if (!status) return null;
     const colors = STATUS_COLORS[status] ?? { bg: '#333', text: '#aaa' };
     return (
-        <View className="flex-row items-center px-2 py-0.5 rounded-full gap-1" style={[{ backgroundColor: colors.bg }]}>
+        <View className="flex-row items-center px-2 py-0.5 rounded-full gap-1 bg-black dark:bg-white">
             <View className="w-1.5 h-1.5 rounded-full" style={[{ backgroundColor: colors.text }]} />
             <Text className="text-[11px] font-semibold" style={[{ color: colors.text }]}>{status}</Text>
         </View>

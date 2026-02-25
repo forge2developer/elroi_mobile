@@ -1,6 +1,7 @@
+import CustomBottomSheet from '@/components/ui/CustomBottomSheet';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DrawerActions, useFocusEffect, useNavigation } from '@react-navigation/native';
-import { Building2, LandPlot, MapPin, Menu, RefreshCw, Search } from 'lucide-react-native';
+import { Building2, LandPlot, MapPin, Menu, RefreshCw, RotateCcw, Search } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
@@ -16,14 +17,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Project = {
-    _id: string; // adjust based on actual api response if different
+    _id: string;
     name: string;
     location?: string;
     plotCount?: number | string;
     totalUnits?: number | string;
     property_type?: string;
     created_at?: string;
-    [key: string]: any; // Catch other fields
+    [key: string]: any;
 };
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -32,7 +33,6 @@ const getApiBaseUrl = () => {
     if (Platform.OS === 'android') return 'http://10.0.2.2:5000';
     return 'http://localhost:5000';
 };
-
 const API_BASE_URL = getApiBaseUrl();
 
 // ─── Theme ─────────────────────────────────────────────────────────────────────
@@ -43,56 +43,53 @@ function getTheme(isDark: boolean) {
         cardBg: isDark ? '#1a1a1a' : '#ffffff',
         border: isDark ? '#333333' : '#e2e8f0',
         text: isDark ? '#ffffff' : '#1e293b',
-        textSecondary: isDark ? '#d8d8d8ff' : '#64748b',
-        mapPin: isDark ? '#b61717ff' : '#c80202ff',
+        textSecondary: isDark ? '#d8d8d8' : '#64748b',
+        mapPin: isDark ? '#b61717' : '#c80202',
         accent: isDark ? '#32be0c' : '#32be0c',
         danger: '#ef4444',
-        inputBg: isDark ? '#111111' : '#f1f5f9',
+        inputBg: isDark ? '#222222' : '#f4f4f5',
         divider: isDark ? '#333333' : '#cbd5e1',
+        fabBg: isDark ? '#ffffff' : '#000000',
+        fabIcon: isDark ? '#000000' : '#ffffff',
+        searchBtnBg: isDark ? '#E5E5E5' : '#000000',
+        searchBtnText: isDark ? '#000000' : '#ffffff',
+        placeholder: isDark ? '#666' : '#999',
+        resetBg: isDark ? '#3b1414' : '#fef2f2',
+        resetText: isDark ? '#f87171' : '#ef4444',
+        resetBorder: isDark ? '#7f1d1d' : '#fecaca',
     };
 }
 
-// ─── Components ─────────────────────────────────────────────────────────────────
+// ─── Project Card ─────────────────────────────────────────────────────────────
 function ProjectCard({ project, theme, cardWidth }: { project: Project; theme: ReturnType<typeof getTheme>; cardWidth: any }) {
-    // Attempt to extract the date from possible API keys
     const rawDate = project.createdAt || project['Created At'] || project.created_at;
     const formattedDate = rawDate
         ? new Date(rawDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })
         : '—';
 
-    // Account for capitalized keys based on the screenshot (Name, Location, Property, Blocks, Units, Created At)
     const name = project.Name || project.name || 'Unnamed Project';
     const location = project.Location || project.location || 'Location missing';
     const propertyType = project.Property || project.property_type || project.property || '—';
 
-    // Robust check for units
     let units = project.totalUnits ?? project.total_units ?? project.totalUnit ?? project.unit ?? project.unit_count;
     units = units !== undefined && units !== null && units !== '' ? units : '—';
 
-    // Robust check for blocks
-    let blocks = project.blockCount ?? project.block_count ?? project.blockCount ?? project.block ?? project.block_count;
-    blocks = blocks !== undefined && blocks !== null && blocks !== '' ? blocks : '—';
-
-    const id = project.id || project.ProjectId || project.Project_ID || (project._id ? project._id.slice(-6).toUpperCase() : 'N/A');
-
     return (
-        <View className="flex-col rounded-2xl border p-4" style={[{ backgroundColor: theme.cardBg, borderColor: theme.border, width: cardWidth }]}>
+        <View style={{ backgroundColor: theme.cardBg, borderColor: theme.border, width: cardWidth, borderRadius: 16, borderWidth: 1, padding: 16 }}>
             {/* Top Row */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Text className="text-[18px] font-semibold flex-1 pr-2" style={[{ color: theme.text }]} numberOfLines={1}>
+                <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600', flex: 1, paddingRight: 8 }} numberOfLines={1}>
                     {name}
                 </Text>
-                <View className='bg-green-500/20 px-2 py-1 rounded-[25px] border border-green-500'>
-                    <Text className='text-green-500 font-bold text-xs'>
-                        {formattedDate}
-                    </Text>
+                <View style={{ backgroundColor: 'rgba(34,197,94,0.15)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 25, borderWidth: 1, borderColor: '#22c55e' }}>
+                    <Text style={{ color: '#22c55e', fontWeight: '700', fontSize: 12 }}>{formattedDate}</Text>
                 </View>
             </View>
 
-            {/* Horizontal Divider */}
+            {/* Divider */}
             <View style={{ height: 1, backgroundColor: theme.divider, marginVertical: 12 }} />
 
-            {/* Bottom Section */}
+            {/* Footer Row */}
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 4 }}>
                     <MapPin size={14} color={theme.mapPin} />
@@ -118,6 +115,61 @@ function ProjectCard({ project, theme, cardWidth }: { project: Project; theme: R
     );
 }
 
+// ─── Search Bottom Sheet ──────────────────────────────────────────────────────
+function SearchSheet({ isOpen, onClose, onSearch, theme }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSearch: (q: string) => void;
+    theme: ReturnType<typeof getTheme>;
+}) {
+    const [inputValue, setInputValue] = useState('');
+
+    const handleSearch = () => {
+        onSearch(inputValue.trim());
+        onClose();
+    };
+
+    const handleClose = () => {
+        setInputValue('');
+        onClose();
+    };
+
+    return (
+        <CustomBottomSheet isOpen={isOpen} onClose={handleClose} title="Search Projects" height={280}>
+            <View style={{ gap: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 50, borderRadius: 12, gap: 10, backgroundColor: theme.inputBg }}>
+                    <Search size={20} color={theme.placeholder} />
+                    <TextInput
+                        style={{ flex: 1, fontSize: 16, height: '100%', color: theme.text }}
+                        placeholder="Search by name..."
+                        placeholderTextColor={theme.placeholder}
+                        value={inputValue}
+                        onChangeText={setInputValue}
+                        autoCapitalize="none"
+                        returnKeyType="search"
+                        onSubmitEditing={handleSearch}
+                        autoFocus
+                    />
+                </View>
+                <Pressable
+                    onPress={handleSearch}
+                    style={({ pressed }) => ({
+                        height: 50,
+                        borderRadius: 12,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginTop: 10,
+                        backgroundColor: theme.searchBtnBg,
+                        opacity: pressed ? 0.85 : 1,
+                    })}
+                >
+                    <Text style={{ color: theme.searchBtnText, fontSize: 16, fontWeight: '600' }}>Search</Text>
+                </Pressable>
+            </View>
+        </CustomBottomSheet>
+    );
+}
+
 // ─── Main Screen ────────────────────────────────────────────────────────────────
 export default function InventoryScreen() {
     const colorScheme = useColorScheme();
@@ -130,12 +182,12 @@ export default function InventoryScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     const fetchProjects = useCallback(async () => {
         try {
             setLoading(true);
             setError('');
-
             let token = '';
             let organization = '';
             try {
@@ -147,27 +199,14 @@ export default function InventoryScreen() {
                     organization = user.organization || user.org || '';
                 }
             } catch (_) { }
-
-            if (!organization) {
-                throw new Error("Organization not found in session.");
-            }
-
+            if (!organization) throw new Error('Organization not found in session.');
             const url = `${API_BASE_URL}/api/projects?organization=${encodeURIComponent(organization)}`;
-
             const res = await fetch(url, {
                 method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                }
+                headers: { 'Accept': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
             });
-
             const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || data.error || `HTTP error ${res.status}`);
-            }
-
+            if (!res.ok) throw new Error(data.message || data.error || `HTTP error ${res.status}`);
             setProjects(data.projects || data.data || []);
         } catch (err: any) {
             console.error('[Projects API Error]:', err);
@@ -177,93 +216,136 @@ export default function InventoryScreen() {
         }
     }, []);
 
-    useFocusEffect(
-        useCallback(() => {
-            fetchProjects();
-        }, [fetchProjects])
-    );
+    useFocusEffect(useCallback(() => { fetchProjects(); }, [fetchProjects]));
 
     const filteredProjects = React.useMemo(() => {
         if (!searchQuery.trim()) return projects;
-        const q = searchQuery.toLowerCase();
-        return projects.filter(p => {
-            const name = p.Name || p.name || '';
-            return name.toLowerCase().includes(q);
-        });
+        const q = searchQuery.toLowerCase().trim();
+        return projects.filter(p => (p.Name || p.name || '').toLowerCase().includes(q));
     }, [projects, searchQuery]);
+
+    const handleSearch = (q: string) => setSearchQuery(q);
+
+    const handleReset = () => setSearchQuery('');
 
     const { width } = useWindowDimensions();
     const isSmallScreen = width < 600;
     const isTabletLandscape = width >= 900;
     const cardWidth = isSmallScreen ? '100%' : isTabletLandscape ? '32%' : '48%';
 
+    const hasActiveSearch = searchQuery.trim().length > 0;
+
     return (
-        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.headerBg }} edges={['top', 'left', 'right']}>
             {/* Header */}
-            <View className="flex-row items-center px-4 py-3.5 border-b" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5 pl-6">
+            <View style={{
+                flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
+                paddingVertical: 14, borderBottomWidth: 1,
+                backgroundColor: theme.headerBg, borderBottomColor: theme.border
+            }}>
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={{ padding: 6, paddingLeft: 8 }}>
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
-                <Text className="text-[18px] font-bold" style={[{ color: theme.text }]}>Project Listing</Text>
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={{ padding: 6, flex: 1 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>Project Listing</Text>
+                </Pressable>
+
+                {/* Reset button — only when search is active */}
+                {hasActiveSearch && (
+                    <Pressable
+                        onPress={handleReset}
+                        style={({ pressed }) => ({
+                            flexDirection: 'row', alignItems: 'center', gap: 5,
+                            paddingHorizontal: 12, paddingVertical: 6,
+                            borderRadius: 20, borderWidth: 1,
+                            borderColor: theme.resetBorder,
+                            backgroundColor: theme.resetBg,
+                            opacity: pressed ? 0.8 : 1,
+                            marginRight: 4,
+                        })}
+                    >
+                        <RotateCcw size={13} color={theme.resetText} />
+                        <Text style={{ color: theme.resetText, fontSize: 13, fontWeight: '600' }}>Reset</Text>
+                    </Pressable>
+                )}
+            </View>
+
+            <View style={{ flex: 1, backgroundColor: theme.bg }}>
+                {/* Active search indicator */}
+                {hasActiveSearch && (
+                    <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 }}>
+                        <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+                            Showing results for <Text style={{ color: theme.text, fontWeight: '600' }}>"{searchQuery}"</Text>
+                        </Text>
+                    </View>
+                )}
+
+                {/* List Area */}
+                <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 12 }}>
+                    {loading ? (
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+                            <ActivityIndicator size="large" color={theme.accent} />
+                            <Text style={{ fontSize: 15, color: theme.textSecondary }}>Loading projects...</Text>
+                        </View>
+                    ) : error ? (
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+                            <Building2 size={48} color={theme.danger} />
+                            <Text style={{ fontSize: 15, color: theme.danger, textAlign: 'center' }}>{error}</Text>
+                            <Pressable onPress={fetchProjects} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8, borderColor: theme.accent }}>
+                                <RefreshCw size={14} color={theme.accent} />
+                                <Text style={{ fontSize: 14, fontWeight: '500', color: theme.accent }}>Retry</Text>
+                            </Pressable>
+                        </View>
+                    ) : filteredProjects.length === 0 ? (
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+                            <Building2 size={48} color={theme.textSecondary} />
+                            <Text style={{ fontSize: 15, color: theme.textSecondary }}>
+                                {hasActiveSearch ? `No results for "${searchQuery}"` : 'No projects found'}
+                            </Text>
+                        </View>
+                    ) : (
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottom + 90, gap: 14 }}>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 14 }}>
+                                {filteredProjects.map((item, index) => (
+                                    <ProjectCard key={item._id || String(index)} project={item} theme={theme} cardWidth={cardWidth} />
+                                ))}
+                            </View>
+                        </ScrollView>
+                    )}
+                </View>
+
+                {/* Floating Search FAB — bottom right, always has rounded background */}
+                <Pressable
+                    onPress={() => setIsSearchOpen(true)}
+                    style={({ pressed }) => ({
+                        position: 'absolute',
+                        bottom: bottom + 20,
+                        right: 20,
+                        width: 54,
+                        height: 54,
+                        borderRadius: 27,
+                        backgroundColor: theme.fabBg,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        shadowColor: '#000',
+                        shadowOpacity: 0.25,
+                        shadowRadius: 8,
+                        shadowOffset: { width: 0, height: 4 },
+                        elevation: 6,
+                        opacity: pressed ? 0.8 : 1,
+                    })}
+                >
+                    <Search size={22} color={theme.fabIcon} />
                 </Pressable>
             </View>
 
-            <View className="flex-1 px-4 pt-4" style={[{ backgroundColor: theme.bg }]}>
-                {/* Search Bar */}
-                <View className="flex-row items-center px-3.5 h-12 rounded-lg border mb-5 gap-2.5" style={[{ backgroundColor: theme.inputBg, borderColor: theme.border }]}>
-                    <Search size={18} color={theme.textSecondary} />
-                    <TextInput
-                        className="flex-1 h-full text-[15px]"
-                        style={[{ color: theme.text }]}
-                        placeholder="Filter By Name"
-                        placeholderTextColor={theme.textSecondary}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        autoCapitalize="none"
-                    />
-                </View>
-
-                {/* List Area */}
-                {loading ? (
-                    <View className="flex-1 justify-center items-center gap-3">
-                        <ActivityIndicator size="large" color={theme.accent} />
-                        <Text className="text-[15px]" style={[{ color: theme.textSecondary }]}>Loading projects...</Text>
-                    </View>
-                ) : error ? (
-                    <View className="flex-1 justify-center items-center gap-3">
-                        <Building2 size={48} color={theme.danger} />
-                        <Text className="text-[15px]" style={[{ color: theme.danger }]}>{error}</Text>
-                        <Pressable onPress={fetchProjects} className="flex-row items-center gap-1.5 border rounded-lg px-4 py-2 mt-2.5" style={[{ borderColor: theme.accent }]}>
-                            <RefreshCw size={14} color={theme.accent} />
-                            <Text className="text-[14px] font-medium" style={[{ color: theme.accent }]}>Retry</Text>
-                        </Pressable>
-                    </View>
-                ) : filteredProjects.length === 0 ? (
-                    <View className="flex-1 justify-center items-center gap-3">
-                        <Building2 size={48} color={theme.textSecondary} />
-                        <Text className="text-[15px]" style={[{ color: theme.textSecondary }]}>No projects found</Text>
-                    </View>
-                ) : (
-                    <ScrollView
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: bottom + 20 }}
-                    >
-                        <View className="flex-row flex-wrap justify-between gap-y-4">
-                            {filteredProjects.map((item, index) => (
-                                <ProjectCard
-                                    key={item._id || String(index)}
-                                    project={item}
-                                    theme={theme}
-                                    cardWidth={cardWidth}
-                                />
-                            ))}
-                        </View>
-                    </ScrollView>
-                )}
-            </View>
+            {/* Search Bottom Sheet */}
+            <SearchSheet
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                onSearch={handleSearch}
+                theme={theme}
+            />
         </SafeAreaView>
     );
 }
-
-

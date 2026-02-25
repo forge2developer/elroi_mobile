@@ -63,23 +63,25 @@ export default function LoginScreen({ onLogin, isLoading, error }: LoginScreenPr
     const handleSubmit = () => {
         setValidationError('');
 
+        const submitEmail = email.trim();
+        const submitPassword = password.trim();
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-        if (!email.trim()) {
+        if (!submitEmail) {
             setValidationError('Please enter your email.');
             return;
         }
-        if (!emailRegex.test(email)) {
+        if (!emailRegex.test(submitEmail)) {
             setValidationError('Please enter a valid email (e.g. name@example.com).');
             return;
         }
-        if (password.length < 6) {
+        if (submitPassword.length < 6) {
             setValidationError('Password must be at least 6 characters.');
             return;
         }
 
         // Validation passed — call the auth handler
-        onLogin(email, password);
+        onLogin(submitEmail, submitPassword);
     };
 
     return (
