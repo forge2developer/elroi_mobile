@@ -15,7 +15,6 @@ import {
     Package,
     PieChart,
     Plane,
-    Settings,
     Sun,
     User,
     Users
@@ -25,7 +24,6 @@ import {
     Animated,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     View,
 } from 'react-native';
@@ -59,7 +57,6 @@ const MENU_SECTIONS: Section[] = [
                 label: 'Dashboard',
                 subItems: [
                     { label: 'Master View', route: '/(drawer)/dashboard' },
-                    { label: 'Customized View', route: '/(drawer)/dashboard/customized' },
                 ],
             },
             {
@@ -75,7 +72,7 @@ const MENU_SECTIONS: Section[] = [
                 label: 'Inventory',
                 subItems: [
                     { label: 'Projects', route: '/(drawer)/inventory' },
-                    { label: 'Add Project', route: '/(drawer)/inventory/new' },
+                    //  { label: 'Add Project', route: '/(drawer)/inventory/new' },
                 ],
             },
             {
@@ -91,11 +88,11 @@ const MENU_SECTIONS: Section[] = [
     {
         title: 'General',
         items: [
-            {
-                icon: Settings,
-                label: 'Settings',
-                route: '/(drawer)/settings'
-            },
+            // {
+            //     icon: Settings,
+            //     label: 'Settings',
+            //     route: '/(drawer)/settings'
+            // },
             { icon: Calendar, label: 'Calendar', route: '/(drawer)/calendar' },
             { icon: Clock, label: 'Sales & Marketing', route: '/(drawer)/sales' },
             { icon: Plane, label: 'Travel', route: '/(drawer)/travel' },
@@ -156,13 +153,11 @@ function CollapsibleMenuItem({
         <View>
             <Pressable
                 onPress={toggle}
-                style={[
-                    styles.menuItem,
-                    isActive && { backgroundColor: theme.activeBg },
-                ]}
+                className="flex-row items-center py-2.5 px-2.5 rounded-lg gap-2.5"
+                style={[isActive && { backgroundColor: theme.activeBg }]}
             >
                 <IconComponent size={20} color={isActive ? theme.activeText : theme.iconColor} />
-                <Text style={[styles.menuLabel, { color: isActive ? theme.activeText : theme.text }]}>
+                <Text className="flex-1 text-[14px] font-medium" style={[{ color: isActive ? theme.activeText : theme.text }]}>
                     {item.label}
                 </Text>
                 <Animated.View style={{ transform: [{ rotate: rotation }] }}>
@@ -171,23 +166,19 @@ function CollapsibleMenuItem({
             </Pressable>
 
             <Animated.View style={{ maxHeight, overflow: 'hidden' }}>
-                <View style={{ marginLeft: 30, paddingLeft: 12, borderLeftWidth: 1, borderLeftColor: theme.border, marginTop: 4, marginBottom: 8 }}>
+                <View className="ml-[30px] pl-3 mt-1 mb-2 border-l" style={[{ borderLeftColor: theme.border }]}>
                     {item.subItems?.map((sub) => {
                         const isSubActive = pathname === sub.route;
                         return (
                             <Pressable
                                 key={sub.label}
                                 onPress={() => router.push(sub.route as any)}
-                                style={[
-                                    styles.subItem,
-                                    isSubActive && { backgroundColor: theme.subActiveBg },
-                                ]}
+                                className="py-2.5 px-4 rounded-lg mb-0.5"
+                                style={[isSubActive && { backgroundColor: theme.subActiveBg }]}
                             >
                                 <Text
-                                    style={[
-                                        styles.subLabel,
-                                        { color: isSubActive ? theme.activeText : theme.textSecondary, fontWeight: isSubActive ? '600' : '400' },
-                                    ]}
+                                    className="text-[14px]"
+                                    style={[{ color: isSubActive ? theme.activeText : theme.textSecondary, fontWeight: isSubActive ? '600' : '400' }]}
                                 >
                                     {sub.label}
                                 </Text>
@@ -217,13 +208,11 @@ function FlatMenuItem({
     return (
         <Pressable
             onPress={() => item.route && router.push(item.route as any)}
-            style={[
-                styles.menuItem,
-                isActive && { backgroundColor: theme.activeBg },
-            ]}
+            className="flex-row items-center py-2.5 px-2.5 rounded-lg gap-2.5"
+            style={[isActive && { backgroundColor: theme.activeBg }]}
         >
             <IconComponent size={20} color={isActive ? theme.activeText : theme.iconColor} />
-            <Text style={[styles.menuLabel, { color: isActive ? theme.activeText : theme.text, flex: 1 }]}>
+            <Text className="flex-1 text-[14px] font-medium" style={[{ color: isActive ? theme.activeText : theme.text }]}>
                 {item.label}
             </Text>
         </Pressable>
@@ -288,17 +277,17 @@ export default function Sidebar() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.bg }]}>
             {/* ─ Header ─ */}
-            <View style={[styles.header, { borderBottomColor: theme.border }]}>
-                <View style={[styles.logoIcon, { backgroundColor: isDark ? '#1f1f3a' : '#e8f0fe' }]}>
+            <View className="flex-row items-center px-4 py-3.5 border-b gap-2.5" style={[{ borderBottomColor: theme.border }]}>
+                <View className="w-9 h-9 rounded-lg items-center justify-center mr-2.5" style={[{ backgroundColor: isDark ? '#1f1f3a' : '#e8f0fe' }]}>
                     <Briefcase size={20} color={theme.activeText} />
                 </View>
-                <View style={{ flex: 1 }}>
-                    <Text style={[styles.appName, { color: theme.text }]}>DESK CRM</Text>
-                    <Text style={[styles.orgName, { color: theme.textSecondary }]}>{userData.organization}</Text>
+                <View className="flex-1">
+                    <Text className="text-[15px] font-bold" style={[{ color: theme.text }]}>DESK CRM</Text>
+                    <Text className="text-[12px]" style={[{ color: theme.textSecondary }]}>{userData.organization}</Text>
                 </View>
-                <Pressable onPress={toggleTheme} style={{ padding: 4 }}>
+                <Pressable onPress={toggleTheme} className="p-1">
                     {isDark ? (
                         <Sun size={20} color={theme.textSecondary} />
                     ) : (
@@ -309,13 +298,13 @@ export default function Sidebar() {
 
             {/* ─ Menu Sections ─ */}
             <ScrollView
-                style={{ flex: 1 }}
+                className="flex-1"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 16 }}
             >
                 {MENU_SECTIONS.map((section) => (
-                    <View key={section.title} style={styles.section}>
-                        <Text style={[styles.sectionTitle, { color: theme.sectionTitle }]}>
+                    <View key={section.title} className="pt-4 px-3">
+                        <Text className="text-[12px] font-semibold uppercase tracking-wide mb-1.5 px-2" style={[{ color: theme.sectionTitle }]}>
                             {section.title}
                         </Text>
                         {section.items.map((item) =>
@@ -342,16 +331,17 @@ export default function Sidebar() {
             {/* ─ User Profile ─ */}
             <Pressable
                 onPress={() => router.push('/(drawer)/profile' as any)}
-                style={[styles.userProfile, { borderTopColor: theme.border }]}
+                className="flex-row items-center px-4 py-3.5 border-t gap-2.5"
+                style={[{ borderTopColor: theme.border }]}
             >
-                <View style={[styles.avatar, { backgroundColor: theme.avatarBg }]}>
+                <View className="w-[34px] h-[34px] rounded-full items-center justify-center" style={[{ backgroundColor: theme.avatarBg }]}>
                     <User size={22} color={theme.textSecondary} />
                 </View>
-                <View style={{ flex: 1 }}>
-                    <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
+                <View className="flex-1">
+                    <Text className="text-[13px] font-semibold" style={[{ color: theme.text }]} numberOfLines={1}>
                         {userData.name}
                     </Text>
-                    <Text style={[styles.userEmail, { color: theme.textSecondary }]} numberOfLines={1}>
+                    <Text className="text-[11px]" style={[{ color: theme.textSecondary }]} numberOfLines={1}>
                         {userData.email}
                     </Text>
                 </View>
@@ -361,87 +351,4 @@ export default function Sidebar() {
     );
 }
 
-// ─── Styles ──────────────────────────────────────────────────
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-    },
-    logoIcon: {
-        width: 36,
-        height: 36,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 10,
-    },
-    appName: {
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    orgName: {
-        fontSize: 12,
-    },
-    section: {
-        paddingTop: 16,
-        paddingHorizontal: 12,
-    },
-    sectionTitle: {
-        fontSize: 12,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 6,
-        paddingHorizontal: 8,
-    },
-    menuItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 10,
-        borderRadius: 8,
-        gap: 10,
-    },
-    menuLabel: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    subItem: {
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        marginBottom: 2,
-    },
-    subLabel: {
-        fontSize: 14,
-    },
-    userProfile: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderTopWidth: 1,
-        gap: 10,
-    },
-    avatar: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    userName: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    userEmail: {
-        fontSize: 11,
-    },
-});
+

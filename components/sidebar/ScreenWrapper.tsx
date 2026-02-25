@@ -1,14 +1,12 @@
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
-import { Bell, Menu, Search } from 'lucide-react-native';
+import { Menu } from 'lucide-react-native';
 import React from 'react';
 import {
     Pressable,
-    StyleSheet,
     Text,
-    TextInput,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,8 +21,8 @@ export default function ScreenWrapper({
     const isDark = colorScheme === 'dark';
 
     const navigation = useNavigation();
-    const [searchText, setSearchText] = React.useState('');
-    const [searchFocused, setSearchFocused] = React.useState(false);
+    // const [searchText, setSearchText] = React.useState('');
+    // const [searchFocused, setSearchFocused] = React.useState(false);
 
     const theme = {
         bg: isDark ? '#000' : '#fff',
@@ -45,41 +43,25 @@ export default function ScreenWrapper({
 
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.headerBg }]}>
+        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]}>
             {/* ─ Top Bar ─ */}
-            <View style={[styles.topBar, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
+            <View className="flex-row items-center px-3 py-2 border-b gap-2" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
                 {/* Left: Hamburger + Title */}
                 <Pressable
                     onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-                    style={styles.menuButton}
+                    className="p-1.5 pl-6"
                 >
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-                    {title}
-                </Text>
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
+                    <Text className="text-[16px] font-semibold mr-auto" numberOfLines={1} style={[{ color: theme.text }]}>
+                        {title}
+                    </Text>
+                </Pressable>
 
-                {/* Right: Search + Online + Notification + Theme */}
-                <View style={styles.rightControls}>
-                    {/* Search Input */}
-                    <View style={[
-                        styles.searchBox,
-                        {
-                            backgroundColor: theme.searchBg,
-                            borderColor: searchFocused ? theme.accent : theme.searchBorder,
-                        },
-                    ]} className='border rounded-2xl'>
-                        <Search size={18} color={theme.textSecondary} />
-                        <TextInput
-                            value={searchText}
-                            onChangeText={setSearchText}
-                            placeholder="Search..."
-                            placeholderTextColor={theme.textSecondary}
-                            onFocus={() => setSearchFocused(true)}
-                            onBlur={() => setSearchFocused(false)}
-                            style={[styles.searchInput, { color: theme.searchText }]}
-                        />
-                    </View>
+                {/* Right: Notification */}
+                <View className="flex-row items-center gap-2">
+                    {/* Search Input Removed as per request */}
 
                     {/* Online Status 
                     <View style={[styles.onlineBadge, { backgroundColor: theme.onlineBg }]}>
@@ -87,17 +69,17 @@ export default function ScreenWrapper({
                         <Text style={[styles.onlineText, { color: theme.onlineText }]}>offline</Text>
                     </View>*/}
 
-                    {/* Notification Bell */}
-                    <Pressable style={styles.iconButton}>
+                    {/* Notification Bell 
+                    <Pressable className="p-1.5 rounded-lg">
                         <Bell size={22} color={theme.iconColor} />
-                    </Pressable>
+                    </Pressable>*/}
                 </View>
             </View>
 
             {/* ─ Content ─ */}
-            <View style={[styles.content, { backgroundColor: theme.bg }]}>
+            <View className="flex-1 items-center justify-center p-6" style={[{ backgroundColor: theme.bg }]}>
                 {children || (
-                    <Text style={{ color: theme.textSecondary, fontSize: 16 }}>
+                    <Text className="text-[16px]" style={{ color: theme.textSecondary }}>
                         {title} screen content
                     </Text>
                 )}
@@ -106,71 +88,4 @@ export default function ScreenWrapper({
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    topBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        gap: 8,
-    },
-    menuButton: {
-        padding: 6,
-    },
-    headerTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginRight: 'auto',
-    },
-    rightControls: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    searchBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 13,
-        borderWidth: 1,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        gap: 4,
-        minWidth: 120,
-    },
-    searchInput: {
-        fontSize: 13,
-        paddingVertical: 2,
-        flex: 1,
-    },
-    onlineBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 14,
-        gap: 5,
-    },
-    onlineDot: {
-        width: 7,
-        height: 7,
-        borderRadius: 4,
-    },
-    onlineText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    iconButton: {
-        padding: 6,
-        borderRadius: 8,
-    },
-    content: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-    },
-});
+

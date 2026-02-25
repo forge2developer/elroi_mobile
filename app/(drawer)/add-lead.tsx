@@ -10,7 +10,6 @@ import {
     Platform,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     TouchableWithoutFeedback,
@@ -34,6 +33,10 @@ function getTheme(isDark: boolean) {
         danger: '#ef4444',
         sectionHeader: isDark ? '#333' : '#e2e8f0',
         purple: '#a855f7', // Added for Requirements section header match
+        btnBg: isDark ? '#E5E5E5' : '#000000ff', // Save Lead Button  Background
+        btnText: isDark ? '#000000ff' : '#ffffffff', // Save Lead Button Text
+        bttnBg: isDark ? '#A94B4D' : '#E7000B', // Cancel Button Background
+        bttnText: isDark ? '#f2f2f2ff' : '#ffffffff', // Cancel Button Text
     };
 }
 
@@ -54,20 +57,18 @@ function FormInput({
     multiline?: boolean;
 }) {
     return (
-        <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>
+        <View className="gap-2">
+            <Text className="text-[13px] font-semibold ml-1" style={[{ color: theme.textSecondary }]}>{label}</Text>
             <TextInput
-                style={[
-                    styles.input,
-                    {
-                        backgroundColor: theme.inputBg,
-                        color: theme.text,
-                        borderColor: theme.border,
-                        height: multiline ? 100 : 50,
-                        textAlignVertical: multiline ? 'top' : 'center',
-                        paddingTop: multiline ? 12 : 0,
-                    }
-                ]}
+                className="border rounded-xl px-3.5 text-[15px]"
+                style={[{
+                    backgroundColor: theme.inputBg,
+                    color: theme.text,
+                    borderColor: theme.border,
+                    height: multiline ? 100 : 50,
+                    textAlignVertical: multiline ? 'top' : 'center',
+                    paddingTop: multiline ? 12 : 0,
+                }]}
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
@@ -80,8 +81,8 @@ function FormInput({
 
 function SectionHeader({ title, theme, color }: { title: string; theme: ReturnType<typeof getTheme>; color?: string }) {
     return (
-        <View style={[styles.sectionHeader, { borderBottomColor: theme.border }]}>
-            <Text style={[styles.sectionTitle, { color: color || theme.accent }]}>{title}</Text>
+        <View className="mb-2 pb-2 border-b" style={[{ borderBottomColor: theme.border }]}>
+            <Text className="text-[14px] font-bold uppercase tracking-wide" style={[{ color: color || theme.accent }]}>{title}</Text>
         </View>
     );
 }
@@ -210,14 +211,16 @@ export default function AddLeadScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.root, { backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
+        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
             {/* Top Bar */}
-            <View style={[styles.topBar, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={styles.menuBtn}>
+            <View className="flex-row items-center px-3 py-3.5 border-b gap-3" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5 pl-6">
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Text style={[styles.topTitle, { color: theme.text }]}>Add New Lead</Text>
-                <View style={{ width: 32 }} />
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
+                <Text className="text-[17px] font-bold flex-1 text-center" style={[{ color: theme.text }]}>Add New Lead</Text>
+                </Pressable>
+                <View className="w-8" />
             </View>
 
             <KeyboardAvoidingView
@@ -226,10 +229,13 @@ export default function AddLeadScreen() {
             >
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <ScrollView
-                        contentContainerStyle={[styles.content, { paddingBottom: bottom + 100 }]}
+                        contentContainerStyle={{ padding: 16, paddingBottom: bottom + 100 }}
                         showsVerticalScrollIndicator={false}
                     >
-                        <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
+                        <View
+                            className="rounded-2xl border p-5 gap-4"
+                            style={[{ backgroundColor: theme.cardBg, borderColor: theme.border, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }]}
+                        >
 
                             {/* Profile Section */}
                             <SectionHeader title="Profile Information" theme={theme} />
@@ -350,17 +356,22 @@ export default function AddLeadScreen() {
             </KeyboardAvoidingView>
 
             {/* Bottom Action Bar */}
-            <View style={[styles.footer, { backgroundColor: theme.headerBg, borderTopColor: theme.border, paddingBottom: bottom + 12 }]}>
+            <View
+                className="absolute bottom-0 left-0 right-0 flex-row gap-3 px-4 pt-3 border-t"
+                style={[{ backgroundColor: theme.headerBg, borderTopColor: theme.border, paddingBottom: bottom + 12 }]}
+            >
                 <Pressable
-                    style={[styles.cancelBtn, { borderColor: theme.border }]}
+                    className="flex-1 h-[52px] rounded-xl border items-center justify-center"
+                    style={[{ borderColor: theme.border, backgroundColor: theme.bttnBg }]}
                     onPress={() => navigation.goBack()}
                     disabled={loading}
                 >
-                    <Text style={[styles.cancelText, { color: theme.text }]}>Cancel</Text>
+                    <Text className="text-[15px] font-semibold" style={[{ color: theme.bttnText }]}>Cancel</Text>
                 </Pressable>
 
                 <Pressable
-                    style={[styles.saveBtn, { backgroundColor: theme.accent }]}
+                    className="flex-[2] h-[52px] rounded-xl flex-row items-center justify-center gap-2"
+                    style={[{ backgroundColor: theme.btnBg }]}
                     onPress={handleSave}
                     disabled={loading}
                 >
@@ -369,7 +380,7 @@ export default function AddLeadScreen() {
                     ) : (
                         <>
                             <Plus size={20} color="#fff" />
-                            <Text style={styles.saveText}>Save Lead</Text>
+                            <Text className="text-[15px] font-semibold" style={[{ color: theme.btnText }]}>Save Lead</Text>
                         </>
                     )}
                 </Pressable>
@@ -378,39 +389,4 @@ export default function AddLeadScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    root: { flex: 1 },
-    topBar: {
-        flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 14,
-        borderBottomWidth: 1, gap: 12,
-    },
-    menuBtn: { padding: 4 },
-    topTitle: { fontSize: 17, fontWeight: '700', flex: 1, textAlign: 'center' },
-    content: { padding: 16 },
-    card: {
-        borderRadius: 16, borderWidth: 1, padding: 20, gap: 16,
-        shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
-    },
-    sectionHeader: { marginBottom: 8, paddingBottom: 8, borderBottomWidth: 1 },
-    sectionTitle: { fontSize: 14, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-    inputGroup: { gap: 8 },
-    label: { fontSize: 13, fontWeight: '600', marginLeft: 4 },
-    input: {
-        borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, fontSize: 15,
-    },
-    footer: {
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingTop: 12,
-        borderTopWidth: 1,
-    },
-    cancelBtn: {
-        flex: 1, height: 52, borderRadius: 12, borderWidth: 1,
-        alignItems: 'center', justifyContent: 'center',
-    },
-    cancelText: { fontSize: 15, fontWeight: '600' },
-    saveBtn: {
-        flex: 2, height: 52, borderRadius: 12,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    },
-    saveText: { fontSize: 15, fontWeight: '600', color: '#fff' },
-});
+

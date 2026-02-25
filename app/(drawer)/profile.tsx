@@ -7,7 +7,6 @@ import {
     Alert,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     View,
@@ -128,20 +127,21 @@ export default function ProfileScreen() {
 
     if (loading) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: theme.headerBg, justifyContent: 'center', alignItems: 'center' }]}>
+            <SafeAreaView className="flex-1 justify-center items-center" style={[{ backgroundColor: theme.headerBg }]}>
                 <Text style={{ color: theme.textSecondary }}>Loading profile...</Text>
             </SafeAreaView>
         );
     }
 
     const renderField = (label: string, key: keyof typeof userData, editable = true) => (
-        <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{label}</Text>
+        <View className="mb-4">
+            <Text className="text-[12px] font-medium uppercase tracking-wide mb-1.5" style={[{ color: theme.textSecondary }]}>{label}</Text>
             {isEditing && editable ? (
                 <TextInput
                     value={editData[key]}
                     onChangeText={(text) => setEditData({ ...editData, [key]: text })}
-                    style={[styles.fieldInput, {
+                    className="text-[15px] border rounded-lg px-3 py-2.5"
+                    style={[{
                         color: theme.text,
                         backgroundColor: theme.inputBg,
                         borderColor: theme.inputBorder,
@@ -149,7 +149,7 @@ export default function ProfileScreen() {
                     placeholderTextColor={theme.textSecondary}
                 />
             ) : (
-                <Text style={[styles.fieldValue, { color: theme.text }]}>
+                <Text className="text-[15px]" style={[{ color: theme.text }]}>
                     {userData[key] || '—'}
                 </Text>
             )}
@@ -157,19 +157,21 @@ export default function ProfileScreen() {
     );
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.headerBg }]}>
+        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]}>
             {/* Header */}
-            <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
+            <View className="flex-row items-center px-4 py-3 border-b" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
                 <Pressable
                     onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-                    style={styles.backButton}
+                    className="p-1.5 pl-6"
                 >
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Profile</Text>
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
+                <Text className="flex-1 text-[18px] font-semibold ml-3" style={[{ color: theme.text }]}>Profile</Text>
+                </Pressable>
                 <Pressable
                     onPress={() => isEditing ? handleSave() : setIsEditing(true)}
-                    style={styles.editButton}
+                    className="p-1.5 pl-20"
                 >
                     {isEditing ? (
                         <Check size={22} color={theme.accent} />
@@ -181,26 +183,26 @@ export default function ProfileScreen() {
 
             <ScrollView
                 style={{ backgroundColor: theme.bg }}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Avatar Section */}
-                <View style={styles.avatarSection}>
-                    <View style={[styles.avatarLarge, { backgroundColor: theme.avatarBg }]}>
+                <View className="items-center py-6">
+                    <View className="w-[88px] h-[88px] rounded-full items-center justify-center mb-3.5" style={[{ backgroundColor: theme.avatarBg }]}>
                         <User size={48} color={theme.accent} />
                     </View>
-                    <Text style={[styles.displayName, { color: theme.text }]}>
+                    <Text className="text-[22px] font-bold" style={[{ color: theme.text }]}>
                         {userData.first_name} {userData.last_name}
                     </Text>
-                    <Text style={[styles.displayRole, { color: theme.textSecondary }]}>
+                    <Text className="text-[14px] mt-1" style={[{ color: theme.textSecondary }]}>
                         {userData.role} • {userData.organization}
                     </Text>
                 </View>
 
                 {/* Details Card */}
-                <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                    <View style={styles.cardHeader}>
-                        <Text style={[styles.cardTitle, { color: theme.text }]}>
+                <View className="rounded-xl border p-4 mb-5" style={[{ backgroundColor: theme.card, borderColor: theme.border }]}>
+                    <View className="flex-row justify-between items-center mb-4">
+                        <Text className="text-[16px] font-semibold" style={[{ color: theme.text }]}>
                             Personal Information
                         </Text>
                         {isEditing && (
@@ -224,20 +226,22 @@ export default function ProfileScreen() {
                 {isEditing && (
                     <Pressable
                         onPress={handleSave}
-                        style={[styles.saveButton, { backgroundColor: theme.accent }]}
+                        className="flex-row items-center justify-center py-3.5 rounded-xl gap-2 mb-3"
+                        style={[{ backgroundColor: theme.accent }]}
                     >
                         <Save size={18} color="#fff" />
-                        <Text style={styles.saveButtonText}>Save Changes</Text>
+                        <Text className="text-white text-[15px] font-semibold">Save Changes</Text>
                     </Pressable>
                 )}
 
                 {/* Logout Button */}
                 <Pressable
                     onPress={handleLogout}
-                    style={[styles.logoutButton, { borderColor: theme.danger }]}
+                    className="flex-row items-center justify-center py-3.5 rounded-xl border-[1.5px] gap-2"
+                    style={[{ borderColor: theme.danger }]}
                 >
                     <LogOut size={18} color={theme.danger} />
-                    <Text style={[styles.logoutButtonText, { color: theme.danger }]}>
+                    <Text className="text-[15px] font-semibold" style={[{ color: theme.danger }]}>
                         Logout
                     </Text>
                 </Pressable>
@@ -246,115 +250,4 @@ export default function ProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-    },
-    backButton: {
-        padding: 4,
-    },
-    headerTitle: {
-        flex: 1,
-        fontSize: 18,
-        fontWeight: '600',
-        marginLeft: 12,
-    },
-    editButton: {
-        padding: 6,
-    },
-    scrollContent: {
-        padding: 20,
-        paddingBottom: 40,
-    },
-    avatarSection: {
-        alignItems: 'center',
-        paddingVertical: 24,
-    },
-    avatarLarge: {
-        width: 88,
-        height: 88,
-        borderRadius: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 14,
-    },
-    displayName: {
-        fontSize: 22,
-        fontWeight: '700',
-    },
-    displayRole: {
-        fontSize: 14,
-        marginTop: 4,
-    },
-    card: {
-        borderRadius: 12,
-        borderWidth: 1,
-        padding: 16,
-        marginBottom: 20,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    cardTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    fieldContainer: {
-        marginBottom: 16,
-    },
-    fieldLabel: {
-        fontSize: 12,
-        fontWeight: '500',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 6,
-    },
-    fieldValue: {
-        fontSize: 15,
-        fontWeight: '400',
-    },
-    fieldInput: {
-        fontSize: 15,
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-    },
-    saveButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 14,
-        borderRadius: 10,
-        gap: 8,
-        marginBottom: 12,
-    },
-    saveButtonText: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: '600',
-    },
-    logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 14,
-        borderRadius: 10,
-        borderWidth: 1.5,
-        gap: 8,
-    },
-    logoutButtonText: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
-});
+

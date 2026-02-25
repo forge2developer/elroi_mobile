@@ -143,13 +143,15 @@ export default function SettingsScreen() {
             >
                 <Pressable
                     onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-                    className="mr-4 p-1"
+                    className="p-1.5 pl-6"
                 >
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Text className="text-base font-extrabold text-xl" style={{ color: theme.text }}>
-                    Settings Workspace
-                </Text>
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
+                    <Text className="text-base font-extrabold text-xl" style={{ color: theme.text }}>
+                        Settings Workspace
+                    </Text>
+                </Pressable>
             </View>
 
             <ScrollView

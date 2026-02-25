@@ -1,6 +1,6 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DrawerActions, useFocusEffect, useNavigation } from '@react-navigation/native';
-import { Bell, Menu, Plus, RefreshCw, Search, User, Users } from 'lucide-react-native';
+import { Menu, RefreshCw, Search, User, Users } from 'lucide-react-native';
 import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
@@ -223,13 +223,15 @@ export default function UserManagementScreen() {
         <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
             {/* Top Bar */}
             <View className="flex-row items-center px-3 py-2.5 border-b gap-2" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1">
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5 pl-6">
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Text className="text-[17px] font-bold flex-1" style={[{ color: theme.text }]}>User Management</Text>
-                <Pressable className="p-1">
-                    <Bell size={20} color={theme.iconColor} />
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
+                    <Text className="text-[17px] font-bold flex-1" style={[{ color: theme.text }]}>User Management</Text>
                 </Pressable>
+                {/*<Pressable className="p-1">
+                    <Bell size={20} color={theme.iconColor} />
+                </Pressable>*/}
             </View>
 
             <View className="flex-1" style={[{ backgroundColor: theme.bg }]}>

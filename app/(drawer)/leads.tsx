@@ -9,7 +9,6 @@ import {
     ActivityIndicator,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     View,
     useWindowDimensions
@@ -59,12 +58,13 @@ function getTheme(isDark: boolean) {
         border: isDark ? '#222222' : '#e2e8f0',
         text: isDark ? '#e5e5e5' : '#1a1a2e',
         textSecondary: isDark ? '#888888' : '#64748b',
-        accent: isDark ? '#e5e5e5' : '#1a73e8',
-        accentBg: isDark ? '#63636cff' : '#e8f0fe',
+        accent: isDark ? '#ffffffff' : '#000000ff',
+        accentBg: isDark ? '#37373cff' : '#e8f4f4ff',
         danger: '#ef4444',
         iconColor: isDark ? '#aaaaaa' : '#555555',
         divider: isDark ? '#1e1e1e' : '#f1f5f9',
         shadow: isDark ? 'transparent' : '#e2e8f0',
+
     };
 }
 
@@ -73,9 +73,9 @@ function StatusBadge({ status }: { status?: string }) {
     if (!status) return null;
     const colors = STATUS_COLORS[status] ?? { bg: '#333', text: '#aaa' };
     return (
-        <View style={[styles.badge, { backgroundColor: colors.bg }]}>
-            <View style={[styles.badgeDot, { backgroundColor: colors.text }]} />
-            <Text style={[styles.badgeText, { color: colors.text }]}>{status}</Text>
+        <View className="flex-row items-center px-2 py-0.5 rounded-full gap-1" style={[{ backgroundColor: colors.bg }]}>
+            <View className="w-1.5 h-1.5 rounded-full" style={[{ backgroundColor: colors.text }]} />
+            <Text className="text-[11px] font-semibold" style={[{ color: colors.text }]}>{status}</Text>
         </View>
     );
 }
@@ -88,23 +88,27 @@ function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<ty
         : '—';
 
     return (
-        <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border, shadowColor: theme.shadow, width: cardWidth }]}>
-            <View style={styles.cardHeader}>
-                <View style={[styles.profileBadge, { backgroundColor: theme.accentBg }]}>
-                    <Text style={[styles.profileBadgeText, { color: theme.accent }]}>
-                        #{lead.profile_id}
-                    </Text>
+        <View
+            className="rounded-xl border overflow-hidden"
+            style={[{
+                backgroundColor: theme.cardBg, borderColor: theme.border, shadowColor: theme.shadow, width: cardWidth,
+                shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2
+            }]}
+        >
+            <View className="flex-row items-center gap-2 px-3.5 py-3">
+                <View className="px-2 py-0.5 rounded-lg" style={[{ backgroundColor: theme.accentBg }]}>
+                    <Text className="text-[12px] font-bold" style={[{ color: theme.accent }]}>#{lead.profile_id}</Text>
                 </View>
-                <Text style={[styles.leadName, { color: theme.text }]} numberOfLines={1}>
+                <Text className="text-[15px] font-semibold flex-1" style={[{ color: theme.text }]} numberOfLines={1}>
                     {lead.name}
                 </Text>
                 <StatusBadge status={lead.status} />
             </View>
 
-            <View style={[styles.cardDivider, { backgroundColor: theme.divider }]} />
-            <View style={styles.cardBody}>
+            <View className="h-px" style={[{ backgroundColor: theme.divider }]} />
+            <View className="p-3.5 gap-2">
                 <InfoRow label="Campaign" value={lead.campaign} theme={theme} />
-                <InfoRow label="Source" value={lead.source} theme={theme} accent />
+                <InfoRow label="Source" value={lead.source} theme={theme} />
                 <InfoRow label="Sub Source" value={lead.sub_source} theme={theme} />
                 <InfoRow label="Received" value={date} theme={theme} />
             </View>
@@ -114,9 +118,9 @@ function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<ty
 
 function InfoRow({ label, value, theme, accent }: { label: string; value: string; theme: ReturnType<typeof getTheme>; accent?: boolean }) {
     return (
-        <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{label}</Text>
-            <Text style={[styles.infoValue, { color: accent ? theme.accent : theme.text }]} numberOfLines={1}>
+        <View className="flex-row justify-between items-center">
+            <Text className="text-[12px] flex-1" style={[{ color: theme.textSecondary }]}>{label}</Text>
+            <Text className="text-[13px] font-medium flex-[2] text-right" style={[{ color: accent ? theme.accent : theme.text }]} numberOfLines={1}>
                 {value || '—'}
             </Text>
         </View>
@@ -271,54 +275,56 @@ export default function LeadsScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.root, { backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
+        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
             {/* Top Bar */}
-            <View style={[styles.topBar, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={styles.menuBtn}>
+            <View className="flex-row items-center px-3 py-2.5 border-b gap-2" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5 pl-6">
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Text style={[styles.topTitle, { color: theme.text }]}>All Leads</Text>
-                <Pressable style={styles.iconBtn}>
-                    <Bell size={20} color={theme.iconColor} />
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
+                <Text className="text-[17px] font-bold flex-1" style={[{ color: theme.text }]}>All Leads</Text>
                 </Pressable>
+                {/*<Pressable className="p-1">
+                    <Bell size={20} color={theme.iconColor} />
+                </Pressable>*/}
             </View>
 
             <View style={{ flex: 1, backgroundColor: theme.bg }}>
                 {/* List */}
                 {loading ? (
-                    <View style={styles.centreBox}>
+                    <View className="flex-1 items-center justify-center gap-3 p-8">
                         <ActivityIndicator size="large" color={theme.accent} />
-                        <Text style={[styles.stateText, { color: theme.textSecondary }]}>Loading leads…</Text>
+                        <Text className="text-[15px] text-center" style={[{ color: theme.textSecondary }]}>Loading leads…</Text>
                     </View>
                 ) : error ? (
-                    <View style={styles.centreBox}>
+                    <View className="flex-1 items-center justify-center gap-3 p-8">
                         <Users size={48} color={theme.danger} />
-                        <Text style={[styles.stateText, { color: theme.danger }]}>{error}</Text>
-                        <Text style={[styles.errorUrl, { color: theme.textSecondary }]}>API: {API_BASE_URL}/grpc/lead/GetAllLeads</Text>
-                        <Pressable onPress={() => fetchLeads(filters)} style={[styles.retryBtn, { borderColor: theme.accent }]}>
+                        <Text className="text-[15px] text-center" style={[{ color: theme.danger }]}>{error}</Text>
+                        <Text className="text-[11px] text-center my-1" style={[{ color: theme.textSecondary, fontFamily: 'monospace' }]}>API: {API_BASE_URL}/grpc/lead/GetAllLeads</Text>
+                        <Pressable onPress={() => fetchLeads(filters)} className="flex-row items-center gap-1.5 border rounded-xl px-4 py-2" style={[{ borderColor: theme.accent }]}>
                             <RefreshCw size={14} color={theme.accent} />
-                            <Text style={[styles.retryText, { color: theme.accent }]}>Retry</Text>
+                            <Text className="text-[13px] font-semibold" style={[{ color: theme.accent }]}>Retry</Text>
                         </Pressable>
                     </View>
                 ) : visibleLeads.length === 0 ? (
-                    <View style={styles.centreBox}>
+                    <View className="flex-1 items-center justify-center gap-3 p-8">
                         <Users size={48} color={theme.textSecondary} />
-                        <Text style={[styles.stateText, { color: theme.textSecondary }]}>No leads found</Text>
-                        {globalSearch ? <Text style={{ color: theme.textSecondary, marginTop: 8 }}>Search: "{globalSearch}"</Text> : null}
+                        <Text className="text-[15px] text-center" style={[{ color: theme.textSecondary }]}>No leads found</Text>
+                        {globalSearch ? <Text className="mt-2" style={{ color: theme.textSecondary }}>Search: "{globalSearch}"</Text> : null}
                     </View>
                 ) : (
                     <ScrollView
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={[styles.listContent, { paddingBottom: 100 + bottom }]}
+                        contentContainerStyle={{ padding: 12, paddingBottom: 100 + bottom }}
                     >
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 }}>
                             {visibleLeads.map((item) => (
                                 <LeadCard key={item.lead_id} lead={item} theme={theme} cardWidth={cardWidth} />
                             ))}
                         </View>
-                        <Text style={[styles.footerText, { color: theme.textSecondary, marginTop: 12 }]}>
+                        {/* <Text style={[styles.footerText, { color: theme.textSecondary, marginTop: 12 }]}>
                             Showing {visibleLeads.length} entries
-                        </Text>
+                        </Text>*/}
                     </ScrollView>
                 )}
 
@@ -326,6 +332,13 @@ export default function LeadsScreen() {
                 <FooterBar
                     onSearchPress={() => setIsSearchOpen(true)}
                     onFilterPress={() => setIsFilterOpen(true)}
+                    onResetPress={handleReset}
+                    hasActiveFilters={
+                        !!globalSearch ||
+                        !!filters.name || !!filters.source || !!filters.sub_source ||
+                        !!filters.campaign || !!filters.status || !!filters.project ||
+                        !!filters.dateStart || !!filters.dateEnd
+                    }
                     bottomInset={bottom}
                 />
 
@@ -348,39 +361,4 @@ export default function LeadsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    root: { flex: 1 },
-    topBar: {
-        flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10,
-        borderBottomWidth: 1, gap: 8,
-    },
-    menuBtn: { padding: 4 },
-    topTitle: { fontSize: 17, fontWeight: '700', flex: 1 },
-    iconBtn: { padding: 4 },
-    listContent: { padding: 12, gap: 12, paddingBottom: 100 }, // Extra padding for footer
-    card: {
-        borderRadius: 14, borderWidth: 1, overflow: 'hidden',
-        shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
-    },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12 },
-    profileBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-    profileBadgeText: { fontSize: 12, fontWeight: '700' },
-    leadName: { fontSize: 15, fontWeight: '600', flex: 1 },
-    badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, gap: 4 },
-    badgeDot: { width: 6, height: 6, borderRadius: 3 },
-    badgeText: { fontSize: 11, fontWeight: '600' },
-    
-    
-    
-    cardDivider: { height: 1 },
-    cardBody: { padding: 14, gap: 8 },
-    infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    infoLabel: { fontSize: 12, flex: 1 },
-    infoValue: { fontSize: 13, fontWeight: '500', flex: 2, textAlign: 'right' },
-    centreBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
-    stateText: { fontSize: 15, textAlign: 'center' },
-    retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8 },
-    retryText: { fontSize: 13, fontWeight: '600' },
-    errorUrl: { fontSize: 11, fontFamily: 'monospace', textAlign: 'center', marginVertical: 4 },
-    footerText: { textAlign: 'center', fontSize: 12, paddingTop: 4, paddingBottom: 8 },
-});
+

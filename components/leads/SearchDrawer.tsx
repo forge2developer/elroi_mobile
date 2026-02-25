@@ -33,8 +33,8 @@ export default function SearchDrawer({
         inputBg: isDark ? '#222' : '#f4f4f5',
         inputText: isDark ? '#fff' : '#000',
         placeholder: isDark ? '#666' : '#999',
-        btnBg: isDark ? '#818cf8' : '#1a73e8',
-        btnText: '#fff',
+        btnBg: isDark ? '#E5E5E5' : '#000000ff', // Search Button  Background
+        btnText: isDark ? '#000000ff' : '#ffffffff', // Search Button Text
     };
 
     return (

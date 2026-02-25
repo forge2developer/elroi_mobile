@@ -1,7 +1,7 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type LoginScreenProps = {
@@ -83,9 +83,9 @@ export default function LoginScreen({ onLogin, isLoading, error }: LoginScreenPr
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.bg }]}>
             <KeyboardAvoidingView
-                style={{ flex: 1 }}
+                className="flex-1"
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
                 <ScrollView
@@ -95,29 +95,29 @@ export default function LoginScreen({ onLogin, isLoading, error }: LoginScreenPr
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Top Bar - Acme Inc. */}
-                    <View style={styles.topBar} className="justify-center">
-                        <View style={[styles.logoBox, { backgroundColor: theme.logoBg }]}>
-                            <Text style={[styles.logoText, { color: theme.text }]}>⌘</Text>
+                    <View className="flex-row items-center justify-center px-6 pt-2 pb-1">
+                        <View className="w-8 h-8 rounded-lg items-center justify-center mr-2" style={[{ backgroundColor: theme.logoBg }]}>
+                            <Text className="text-[14px]" style={[{ color: theme.text }]}>⌘</Text>
                         </View>
-                        <Text style={[styles.brandName, { color: theme.text }]}>Acme Inc.</Text>
+                        <Text className="text-[16px] font-semibold" style={[{ color: theme.text }]}>Acme Inc.</Text>
                     </View>
 
                     {/* Title Section */}
                     <View style={[{ paddingTop: isKeyboardVisible ? 10 : 80, alignItems: 'center' }]}>
                         <View style={{ width: '100%', maxWidth: 450 }}>
-                            <View style={styles.titleSection}>
-                                <Text style={[styles.title, { color: theme.text }]}>
+                            <View className="px-6 pt-4 pb-2 items-center">
+                                <Text className="text-[28px] font-bold mb-2" style={[{ color: theme.text }]}>
                                     Login to your account
                                 </Text>
-                                <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+                                <Text className="text-[14px] text-center leading-5" style={[{ color: theme.textSecondary }]}>
                                     Enter your email below{'\n'}to login to your account
                                 </Text>
                             </View>
 
                             {/* Form */}
-                            <View style={styles.form}>
+                            <View className="px-6 pt-8">
                                 {/* Email */}
-                                <Text style={[styles.label, { color: theme.text }]}>Email</Text>
+                                <Text className="text-[14px] font-medium mb-1.5" style={[{ color: theme.text }]}>Email</Text>
                                 <TextInput
                                     placeholder="m@example.com"
                                     placeholderTextColor={theme.placeholder}
@@ -127,7 +127,8 @@ export default function LoginScreen({ onLogin, isLoading, error }: LoginScreenPr
                                     value={email}
                                     onChangeText={setEmail}
                                     editable={!isLoading}
-                                    style={[styles.input, {
+                                    className="border rounded-lg px-3.5 py-3 text-[15px] mb-4"
+                                    style={[{
                                         color: theme.text,
                                         borderColor: theme.border,
                                         backgroundColor: theme.card,
@@ -135,31 +136,27 @@ export default function LoginScreen({ onLogin, isLoading, error }: LoginScreenPr
                                 />
 
                                 {/* Password label + Forgot link */}
-                                <View style={styles.passwordRow}>
-                                    <Text style={[styles.label, { color: theme.text, marginBottom: 0 }]}>Password</Text>
+                                <View className="flex-row items-center justify-between mb-1.5">
+                                    <Text className="text-[14px] font-medium" style={[{ color: theme.text }]}>Password</Text>
                                     <Pressable
                                         onPress={() => { }}
                                         onPressIn={() => setIsHovering(true)}
                                         onPressOut={() => setIsHovering(false)}
                                     >
                                         <Text
-                                            style={[
-                                                styles.forgotText,
-                                                {
-                                                    color: isHovering ? theme.forgotHover : theme.textSecondary,
-                                                    textDecorationLine: isHovering ? "underline" : "none",
-                                                },
-                                            ]}
+                                            className="text-[12px]"
+                                            style={[{
+                                                color: isHovering ? theme.forgotHover : theme.textSecondary,
+                                                textDecorationLine: isHovering ? "underline" : "none",
+                                            }]}
                                         >
                                             Forgot your password?
                                         </Text>
                                     </Pressable>
-
-
                                 </View>
 
                                 {/* Password Input with toggle */}
-                                <View style={{ position: 'relative' }}>
+                                <View className="relative">
                                     <TextInput
                                         secureTextEntry={!showPassword}
                                         placeholder=""
@@ -167,7 +164,8 @@ export default function LoginScreen({ onLogin, isLoading, error }: LoginScreenPr
                                         value={password}
                                         onChangeText={setPassword}
                                         editable={!isLoading}
-                                        style={[styles.input, {
+                                        className="border rounded-lg px-3.5 py-3 text-[15px] mb-4"
+                                        style={[{
                                             color: theme.text,
                                             borderColor: displayError ? '#ef4444' : theme.border,
                                             backgroundColor: theme.card,
@@ -175,7 +173,7 @@ export default function LoginScreen({ onLogin, isLoading, error }: LoginScreenPr
                                     />
                                     <Pressable
                                         onPress={() => setShowPassword(!showPassword)}
-                                        style={styles.eyeButton}
+                                        className="absolute right-3 top-0 bottom-4 justify-center"
                                     >
                                         <MaterialIcons
                                             name={showPassword ? 'visibility' : 'visibility-off'}
@@ -187,21 +185,22 @@ export default function LoginScreen({ onLogin, isLoading, error }: LoginScreenPr
 
                                 {/* Error message */}
                                 {!!displayError && (
-                                    <Text style={styles.errorText}>{displayError}</Text>
+                                    <Text className="text-[#ef4444] text-[13px] -mt-2 mb-2">{displayError}</Text>
                                 )}
                             </View>
 
                             {/* Login Button */}
-                            <View style={styles.buttonContainer} className="pt-8">
+                            <View className="px-6 mt-2 pt-8">
                                 <Pressable
                                     onPress={handleSubmit}
                                     disabled={isLoading}
-                                    style={[styles.loginButton, {
+                                    className="rounded-lg py-3.5 items-center justify-center"
+                                    style={[{
                                         backgroundColor: theme.buttonBg,
                                         opacity: isLoading ? 0.6 : 1,
                                     }]}
                                 >
-                                    <Text style={[styles.loginButtonText, { color: theme.buttonText }]}>
+                                    <Text className="font-semibold text-[16px]" style={[{ color: theme.buttonText }]}>
                                         {isLoading ? 'Logging in...' : 'Login'}
                                     </Text>
                                 </Pressable>
@@ -214,99 +213,4 @@ export default function LoginScreen({ onLogin, isLoading, error }: LoginScreenPr
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    topBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 24,
-        paddingTop: 8,
-        paddingBottom: 4,
-    },
-    logoBox: {
-        width: 32,
-        height: 32,
-        borderRadius: 6,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 8,
-    },
-    logoText: {
-        fontSize: 14,
-    },
-    brandName: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    titleSection: {
-        paddingHorizontal: 24,
-        paddingTop: 16,
-        paddingBottom: 8,
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    subtitle: {
-        fontSize: 14,
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    form: {
-        paddingHorizontal: 24,
-        paddingTop: 32,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '500',
-        marginBottom: 6,
-    },
-    input: {
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        fontSize: 15,
-        marginBottom: 16,
-    },
-    passwordRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 6,
-    },
-    forgotText: {
-        fontSize: 12,
-    },
-    eyeButton: {
-        position: 'absolute',
-        right: 12,
-        top: 0,
-        bottom: 16,
-        justifyContent: 'center',
-    },
-    errorText: {
-        color: '#ef4444',
-        fontSize: 13,
-        marginTop: -8,
-        marginBottom: 8,
-    },
-    buttonContainer: {
-        paddingHorizontal: 24,
-        marginTop: 8,
-    },
-    loginButton: {
-        borderRadius: 8,
-        paddingVertical: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    loginButtonText: {
-        fontWeight: '600',
-        fontSize: 16,
-    },
-});
+

@@ -9,7 +9,6 @@ import {
     Platform,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     View,
@@ -164,30 +163,30 @@ export default function AddLeadScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top', 'left', 'right']}>
+        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.bg }]} edges={['top', 'left', 'right']}>
             {/* Header */}
-            <View style={[styles.header, { borderBottomColor: theme.border, backgroundColor: theme.headerBg }]}>
-                <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <View className="flex-row items-center p-4 gap-3 border-b" style={[{ borderBottomColor: theme.border, backgroundColor: theme.headerBg }]}>
+                <Pressable onPress={() => navigation.goBack()} className="p-1">
                     <ArrowLeft size={24} color={theme.text} />
                 </Pressable>
                 <View>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>New Lead</Text>
-                    <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Enter the details for the new prospective Lead.</Text>
+                    <Text className="text-[20px] font-bold" style={[{ color: theme.text }]}>New Lead</Text>
+                    <Text className="text-[13px] mt-0.5" style={[{ color: theme.textSecondary }]}>Enter the details for the new prospective Lead.</Text>
                 </View>
             </View>
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={{ flex: 1 }}
+                className="flex-1"
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
 
                     {/* Contact Info */}
                     <SectionHeader title="CONTACT INFORMATION" theme={theme} color={theme.accent} />
 
                     {/* Row 1 */}
-                    <View style={styles.row}>
+                    <View className="flex-row mb-4">
                         <InputGroup
                             label="Full Name" required={true}
                             value={form.name} onChange={(v: string) => updateForm('name', v)}
@@ -203,7 +202,7 @@ export default function AddLeadScreen() {
                     </View>
 
                     {/* Row 2 */}
-                    <View style={styles.row}>
+                    <View className="flex-row mb-4">
                         <InputGroup
                             label="Phone Number" required={true}
                             value={form.phone} onChange={(v: string) => updateForm('phone', v)}
@@ -221,7 +220,7 @@ export default function AddLeadScreen() {
                     <View style={{ height: 20 }} />
                     <SectionHeader title="REQUIREMENTS" theme={theme} color={theme.purple} />
 
-                    <View style={styles.row}>
+                    <View className="flex-row mb-4">
                         <InputGroup
                             label="Budget Range"
                             value={form.budget} onChange={(v: string) => updateForm('budget', v)}
@@ -235,7 +234,7 @@ export default function AddLeadScreen() {
                         />
                     </View>
 
-                    <View style={styles.row}>
+                    <View className="flex-row mb-4">
                         <InputGroup
                             label="Preferred Floor"
                             value={form.prefFloor} onChange={(v: string) => updateForm('prefFloor', v)}
@@ -253,7 +252,7 @@ export default function AddLeadScreen() {
                     <View style={{ height: 20 }} />
                     <SectionHeader title="ACQUISITION SOURCE" theme={theme} color={theme.success} />
 
-                    <View style={styles.row}>
+                    <View className="flex-row mb-4">
                         <InputGroup
                             label="Campaign Name"
                             value={form.campaign} onChange={(v: string) => updateForm('campaign', v)}
@@ -267,7 +266,7 @@ export default function AddLeadScreen() {
                         />
                     </View>
 
-                    <View style={styles.row}>
+                    <View className="flex-row mb-4">
                         <InputGroup
                             label="Sub Source"
                             value={form.subSource} onChange={(v: string) => updateForm('subSource', v)}
@@ -285,21 +284,23 @@ export default function AddLeadScreen() {
             </KeyboardAvoidingView>
 
             {/* Footer */}
-            <View style={[styles.footer, { backgroundColor: theme.cardBg, borderTopColor: theme.border }]}>
+            <View className="p-4 flex-row gap-3 justify-end border-t" style={[{ backgroundColor: theme.cardBg, borderTopColor: theme.border }]}>
                 <Pressable
                     onPress={() => navigation.goBack()}
                     disabled={loading}
-                    style={[styles.footerBtn, { backgroundColor: '#ef4444' }]}
+                    className="py-3 px-6 rounded-lg items-center justify-center"
+                    style={[{ backgroundColor: '#ef4444' }]}
                 >
-                    <Text style={styles.footerBtnText}>Cancel</Text>
+                    <Text className="text-white font-semibold text-[14px]">Cancel</Text>
                 </Pressable>
 
                 <Pressable
                     onPress={handleSubmit}
                     disabled={loading}
-                    style={[styles.footerBtn, { backgroundColor: '#e2e8f0', flex: 0, minWidth: 120 }]}
+                    className="py-3 px-6 rounded-lg items-center justify-center min-w-[120px]"
+                    style={[{ backgroundColor: '#e2e8f0' }]}
                 >
-                    {loading ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.footerBtnText, { color: '#000' }]}>Create Lead</Text>}
+                    {loading ? <ActivityIndicator size="small" color="#000" /> : <Text className="text-black font-semibold text-[14px]">Create Lead</Text>}
                 </Pressable>
             </View>
         </SafeAreaView>
@@ -308,27 +309,25 @@ export default function AddLeadScreen() {
 
 // ─── Helper Components ──────────────────────────────────────────────────────────
 const SectionHeader = ({ title, theme, color }: { title: string, theme: any, color?: string }) => (
-    <View style={styles.sectionHeader}>
-        <View style={[styles.bullet, { backgroundColor: color || theme.accent }]} />
-        <Text style={[styles.sectionTitle, { color: color || theme.accent }]}>{title}</Text>
+    <View className="flex-row items-center mb-3 gap-2">
+        <View className="w-1.5 h-1.5 rounded-full" style={[{ backgroundColor: color || theme.accent }]} />
+        <Text className="text-[12px] font-bold tracking-wide" style={[{ color: color || theme.accent }]}>{title}</Text>
     </View>
 );
 
 const InputGroup = ({ label, value, onChange, placeholder, theme, required, keyboardType, error }: any) => (
-    <View style={styles.inputGroup}>
-        <View style={{ flexDirection: 'row', marginBottom: 6 }}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>
+    <View className="flex-1">
+        <View className="flex-row mb-1.5">
+            <Text className="text-[13px] font-semibold" style={[{ color: theme.textSecondary }]}>{label}</Text>
             {required && <Text style={{ color: theme.danger, marginLeft: 2 }}>*</Text>}
         </View>
         <TextInput
-            style={[
-                styles.input,
-                {
-                    backgroundColor: theme.inputBg,
-                    color: theme.text,
-                    borderColor: error ? theme.danger : theme.border
-                }
-            ]}
+            className="border rounded-lg px-3 text-[14px] h-[46px]"
+            style={[{
+                backgroundColor: theme.inputBg,
+                color: theme.text,
+                borderColor: error ? theme.danger : theme.border
+            }]}
             placeholder={placeholder}
             placeholderTextColor={theme.textSecondary + '80'}
             value={value}
@@ -339,36 +338,4 @@ const InputGroup = ({ label, value, onChange, placeholder, theme, required, keyb
     </View>
 );
 
-// ─── Styles ─────────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    header: {
-        flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderBottomWidth: 1,
-    },
-    backBtn: { padding: 4 },
-    headerTitle: { fontSize: 20, fontWeight: '700' },
-    headerSubtitle: { fontSize: 13, marginTop: 2 },
 
-    scrollContent: { padding: 20, paddingBottom: 40 },
-
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
-    bullet: { width: 6, height: 6, borderRadius: 3 },
-    sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
-
-    row: { flexDirection: 'row', marginBottom: 16 },
-    inputGroup: { flex: 1 },
-    label: { fontSize: 13, fontWeight: '600' },
-    input: {
-        borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, fontSize: 14,
-        height: 46,
-    },
-
-    footer: {
-        padding: 16, flexDirection: 'row', gap: 12, justifyContent: 'flex-end',
-        borderTopWidth: 1,
-    },
-    footerBtn: {
-        paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-    },
-    footerBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-});

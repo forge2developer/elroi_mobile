@@ -250,7 +250,7 @@ export default function FilterDrawer({
                         {SOURCE_OPTIONS.map(opt => (
                             <TouchableOpacity key={opt} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('source', opt)}>
                                 <View className="w-5 h-5 rounded border-2 border-[#ccc] items-center justify-center" style={[filters.source === opt && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
-                                    {filters.source === opt && <Check size={14} color="#fff" />}
+                                    {filters.source === opt && <Check size={14} color={theme.checkColor} />}
                                 </View>
                                 <Text className="text-[15px]" style={[{ color: theme.text }]}>{opt}</Text>
                             </TouchableOpacity>
@@ -264,7 +264,7 @@ export default function FilterDrawer({
                         {STATUS_OPTIONS.map(opt => (
                             <TouchableOpacity key={opt} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('status', opt)}>
                                 <View className="w-5 h-5 rounded border-2 border-[#ccc] items-center justify-center" style={[filters.status === opt && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
-                                    {filters.status === opt && <Check size={14} color="#fff" />}
+                                    {filters.status === opt && <Check size={14} color={theme.checkColor} />}
                                 </View>
                                 <Text className="text-[15px]" style={[{ color: theme.text }]}>{opt}</Text>
                             </TouchableOpacity>
@@ -286,7 +286,7 @@ export default function FilterDrawer({
                                 return (
                                     <TouchableOpacity key={idx} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('project', pName)}>
                                         <View className="w-5 h-5 rounded border-2 border-[#ccc] items-center justify-center" style={[isSelected && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
-                                            {isSelected && <Check size={14} color="#fff" />}
+                                            {isSelected && <Check size={14} color={theme.checkColor} />}
                                         </View>
                                         <Text className="text-[15px]" style={[{ color: theme.text }]}>{pName}</Text>
                                     </TouchableOpacity>
@@ -390,7 +390,8 @@ function getTheme(isDark: boolean) {
         border: isDark ? '#2a2a2a' : '#e5e7eb',
         text: isDark ? '#e5e5e5' : '#1a1a1a',
         textSecondary: isDark ? '#888888' : '#6b7280',
-        accent: isDark ? '#818cf8' : '#1a73e8',
+        accent: isDark ? '#ffffff' : '#000000',
+        checkColor: isDark ? '#000000' : '#ffffff',
         inputBg: isDark ? '#1f1f1f' : '#ffffff',
         btnPrimaryBg: isDark ? '#D0D0D0' : '#332F2C',
         btnPrimaryText: '#ffffff',

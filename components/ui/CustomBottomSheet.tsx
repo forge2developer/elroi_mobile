@@ -8,7 +8,6 @@ import {
     Modal,
     Platform,
     Pressable,
-    StyleSheet,
     Text,
     TouchableWithoutFeedback,
     View,
@@ -72,15 +71,24 @@ export default function CustomBottomSheet({
         >
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={styles.keyboardView}
+                className="flex-1"
             >
                 <TouchableWithoutFeedback onPress={onClose}>
-                    <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
+                    <View className="flex-1 justify-end" style={[{ backgroundColor: theme.overlay }]}>
                         <TouchableWithoutFeedback>
                             <Animated.View
                                 style={[
-                                    styles.sheetContent,
                                     {
+                                        width: '100%',
+                                        borderTopLeftRadius: 20,
+                                        borderTopRightRadius: 20,
+                                        borderTopWidth: 1,
+                                        overflow: 'hidden',
+                                        shadowColor: "#000",
+                                        shadowOffset: { width: 0, height: -3 },
+                                        shadowOpacity: 0.2,
+                                        shadowRadius: 4,
+                                        elevation: 5,
                                         backgroundColor: theme.bg,
                                         transform: [{ translateY: slideAnim }],
                                         height: height as any,
@@ -89,21 +97,21 @@ export default function CustomBottomSheet({
                                 ]}
                             >
                                 {/* Header */}
-                                <View style={[styles.header, { borderBottomColor: theme.border }]}>
-                                    <View style={styles.headerLeft}>
+                                <View className="flex-row items-center justify-between px-5 py-4 border-b" style={[{ borderBottomColor: theme.border }]}>
+                                    <View className="flex-1">
                                         {title && (
-                                            <Text style={[styles.title, { color: theme.text }]}>
+                                            <Text className="text-[18px] font-bold" style={[{ color: theme.text }]}>
                                                 {title}
                                             </Text>
                                         )}
                                     </View>
-                                    <Pressable onPress={onClose} style={styles.closeBtn}>
+                                    <Pressable onPress={onClose} className="p-1">
                                         <X size={24} color={theme.text} />
                                     </Pressable>
                                 </View>
 
                                 {/* Body */}
-                                <View style={[styles.body, noPadding && { padding: 0 }]}>
+                                <View className="flex-1" style={[noPadding ? { padding: 0 } : { padding: 20 }]}>
                                     {children}
                                 </View>
                             </Animated.View>
@@ -115,50 +123,4 @@ export default function CustomBottomSheet({
     );
 }
 
-const styles = StyleSheet.create({
-    keyboardView: {
-        flex: 1,
-    },
-    overlay: {
-        flex: 1,
-        justifyContent: 'flex-end',
-    },
-    sheetContent: {
-        width: '100%',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        borderTopWidth: 1,
-        overflow: 'hidden',
-        // Shadow
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: -3,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-    },
-    headerLeft: {
-        flex: 1,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    closeBtn: {
-        padding: 4,
-    },
-    body: {
-        flex: 1,
-        padding: 20,
-    },
-});
+

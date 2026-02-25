@@ -7,7 +7,6 @@ import {
     Platform,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     View,
@@ -77,10 +76,10 @@ function ProjectCard({ project, theme, cardWidth }: { project: Project; theme: R
     const id = project.id || project.ProjectId || project.Project_ID || (project._id ? project._id.slice(-6).toUpperCase() : 'N/A');
 
     return (
-        <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.border, width: cardWidth, flexDirection: 'column', padding: 16 }]}>
+        <View className="flex-col rounded-2xl border p-4" style={[{ backgroundColor: theme.cardBg, borderColor: theme.border, width: cardWidth }]}>
             {/* Top Row */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Text style={[styles.projectName, { color: theme.text, flex: 1, paddingRight: 8 }]} numberOfLines={1}>
+                <Text className="text-[18px] font-semibold flex-1 pr-2" style={[{ color: theme.text }]} numberOfLines={1}>
                     {name}
                 </Text>
                 <View className='bg-green-500/20 px-2 py-1 rounded-[25px] border border-green-500'>
@@ -199,21 +198,24 @@ export default function InventoryScreen() {
     const cardWidth = isSmallScreen ? '100%' : isTabletLandscape ? '32%' : '48%';
 
     return (
-        <SafeAreaView style={[styles.root, { backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
+        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
             {/* Header */}
-            <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={styles.menuBtn}>
+            <View className="flex-row items-center px-4 py-3.5 border-b" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5 pl-6">
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Project Listing</Text>
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
+                <Text className="text-[18px] font-semibold" style={[{ color: theme.text }]}>Project Listing</Text>
+                </Pressable>
             </View>
 
-            <View style={[styles.content, { backgroundColor: theme.bg, flex: 1 }]}>
+            <View className="flex-1 px-4 pt-4" style={[{ backgroundColor: theme.bg }]}>
                 {/* Search Bar */}
-                <View style={[styles.searchContainer, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
+                <View className="flex-row items-center px-3.5 h-12 rounded-lg border mb-5 gap-2.5" style={[{ backgroundColor: theme.inputBg, borderColor: theme.border }]}>
                     <Search size={18} color={theme.textSecondary} />
                     <TextInput
-                        style={[styles.searchInput, { color: theme.text }]}
+                        className="flex-1 h-full text-[15px]"
+                        style={[{ color: theme.text }]}
                         placeholder="Filter By Name"
                         placeholderTextColor={theme.textSecondary}
                         value={searchQuery}
@@ -224,30 +226,30 @@ export default function InventoryScreen() {
 
                 {/* List Area */}
                 {loading ? (
-                    <View style={styles.centerBox}>
+                    <View className="flex-1 justify-center items-center gap-3">
                         <ActivityIndicator size="large" color={theme.accent} />
-                        <Text style={[styles.stateText, { color: theme.textSecondary }]}>Loading projects...</Text>
+                        <Text className="text-[15px]" style={[{ color: theme.textSecondary }]}>Loading projects...</Text>
                     </View>
                 ) : error ? (
-                    <View style={styles.centerBox}>
+                    <View className="flex-1 justify-center items-center gap-3">
                         <Building2 size={48} color={theme.danger} />
-                        <Text style={[styles.stateText, { color: theme.danger }]}>{error}</Text>
-                        <Pressable onPress={fetchProjects} style={[styles.retryBtn, { borderColor: theme.accent }]}>
+                        <Text className="text-[15px]" style={[{ color: theme.danger }]}>{error}</Text>
+                        <Pressable onPress={fetchProjects} className="flex-row items-center gap-1.5 border rounded-lg px-4 py-2 mt-2.5" style={[{ borderColor: theme.accent }]}>
                             <RefreshCw size={14} color={theme.accent} />
-                            <Text style={[styles.retryText, { color: theme.accent }]}>Retry</Text>
+                            <Text className="text-[14px] font-medium" style={[{ color: theme.accent }]}>Retry</Text>
                         </Pressable>
                     </View>
                 ) : filteredProjects.length === 0 ? (
-                    <View style={styles.centerBox}>
+                    <View className="flex-1 justify-center items-center gap-3">
                         <Building2 size={48} color={theme.textSecondary} />
-                        <Text style={[styles.stateText, { color: theme.textSecondary }]}>No projects found</Text>
+                        <Text className="text-[15px]" style={[{ color: theme.textSecondary }]}>No projects found</Text>
                     </View>
                 ) : (
                     <ScrollView
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottom + 20 }]}
+                        contentContainerStyle={{ paddingBottom: bottom + 20 }}
                     >
-                        <View style={styles.grid}>
+                        <View className="flex-row flex-wrap justify-between gap-y-4">
                             {filteredProjects.map((item, index) => (
                                 <ProjectCard
                                     key={item._id || String(index)}
@@ -264,108 +266,4 @@ export default function InventoryScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    root: { flex: 1 },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-    },
-    menuBtn: { marginRight: 16 },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    content: {
-        flex: 1,
-        paddingHorizontal: 16,
-        paddingTop: 16,
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 14,
-        height: 48,
-        borderRadius: 8,
-        borderWidth: 1,
-        marginBottom: 20,
-        gap: 10,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 15,
-        height: '100%',
-    },
-    scrollContent: {
-        // padding will be added inline for bottom
-    },
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        rowGap: 16,
 
-    },
-    card: {
-        flexDirection: 'row',
-        borderRadius: 16,
-        borderWidth: 1,
-        padding: 20,
-    },
-    cardLeft: {
-        flex: 1,
-        paddingRight: 16,
-    },
-    projectName: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    projectDetail: {
-        fontSize: 14,
-
-    },
-    verticalDivider: {
-        width: 1,
-    },
-    cardRight: {
-        flex: 1,
-        paddingLeft: 16,
-        justifyContent: 'center',
-    },
-    rightRow: {
-        alignItems: 'flex-end',
-    },
-    rightLabel: {
-        fontSize: 12,
-        marginBottom: 4,
-    },
-    rightValue: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    centerBox: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 12,
-    },
-    stateText: {
-        fontSize: 15,
-    },
-    retryBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        marginTop: 10,
-    },
-    retryText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-});
