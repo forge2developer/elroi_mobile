@@ -10,8 +10,9 @@ import {
     ScrollView,
     Text,
     TextInput,
+    TouchableOpacity,
     View,
-    useWindowDimensions,
+    useWindowDimensions
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -49,8 +50,8 @@ function getTheme(isDark: boolean) {
         danger: '#ef4444',
         inputBg: isDark ? '#222222' : '#f4f4f5',
         divider: isDark ? '#333333' : '#cbd5e1',
-        fabBg: isDark ? '#ffffff' : '#000000',
-        fabIcon: isDark ? '#000000' : '#ffffff',
+        fabBg: isDark ? '#222222' : '#000000',
+        fabIcon: '#ffffff',
         searchBtnBg: isDark ? '#E5E5E5' : '#000000',
         searchBtnText: isDark ? '#000000' : '#ffffff',
         placeholder: isDark ? '#666' : '#999',
@@ -135,9 +136,9 @@ function SearchSheet({ isOpen, onClose, onSearch, theme }: {
     };
 
     return (
-        <CustomBottomSheet isOpen={isOpen} onClose={handleClose} title="Search Projects" height={280}>
-            <View style={{ gap: 20 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 50, borderRadius: 12, gap: 10, backgroundColor: theme.inputBg }}>
+        <CustomBottomSheet isOpen={isOpen} onClose={handleClose} title="Search Projects" height={300}>
+            <View style={{ gap: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 52, borderRadius: 12, gap: 10, backgroundColor: theme.inputBg }}>
                     <Search size={20} color={theme.placeholder} />
                     <TextInput
                         style={{ flex: 1, fontSize: 16, height: '100%', color: theme.text }}
@@ -151,20 +152,19 @@ function SearchSheet({ isOpen, onClose, onSearch, theme }: {
                         autoFocus
                     />
                 </View>
-                <Pressable
+                <TouchableOpacity
                     onPress={handleSearch}
-                    style={({ pressed }) => ({
-                        height: 50,
+                    activeOpacity={0.85}
+                    style={{
+                        height: 52,
                         borderRadius: 12,
                         justifyContent: 'center',
                         alignItems: 'center',
-                        marginTop: 10,
                         backgroundColor: theme.searchBtnBg,
-                        opacity: pressed ? 0.85 : 1,
-                    })}
+                    }}
                 >
                     <Text style={{ color: theme.searchBtnText, fontSize: 16, fontWeight: '600' }}>Search</Text>
-                </Pressable>
+                </TouchableOpacity>
             </View>
         </CustomBottomSheet>
     );
@@ -313,31 +313,34 @@ export default function InventoryScreen() {
                         </ScrollView>
                     )}
                 </View>
-
-                {/* Floating Search FAB — bottom right, always has rounded background */}
-                <Pressable
-                    onPress={() => setIsSearchOpen(true)}
-                    style={({ pressed }) => ({
-                        position: 'absolute',
-                        bottom: bottom + 20,
-                        right: 20,
-                        width: 54,
-                        height: 54,
-                        borderRadius: 27,
-                        backgroundColor: theme.fabBg,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        shadowColor: '#000',
-                        shadowOpacity: 0.25,
-                        shadowRadius: 8,
-                        shadowOffset: { width: 0, height: 4 },
-                        elevation: 6,
-                        opacity: pressed ? 0.8 : 1,
-                    })}
-                >
-                    <Search size={22} color={theme.fabIcon} />
-                </Pressable>
             </View>
+
+            {/* Floating Search FAB — bottom right */}
+            <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setIsSearchOpen(true)}
+                style={{
+                    position: 'absolute',
+                    bottom: (bottom > 0 ? bottom : 10) + 60,
+                    right: 20,
+                    width: 58,
+                    height: 58,
+                    borderRadius: 29,
+                    backgroundColor: theme.fabBg,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    shadowColor: '#000',
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 4 },
+                    elevation: 10,
+                    zIndex: 999,
+                    borderWidth: isDark ? 1 : 0,
+                    borderColor: '#444',
+                }}
+            >
+                <Search size={24} color={theme.fabIcon} />
+            </TouchableOpacity>
 
             {/* Search Bottom Sheet */}
             <SearchSheet
