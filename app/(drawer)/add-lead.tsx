@@ -254,7 +254,7 @@ export default function AddLeadScreen() {
                                 theme={theme}
                             />
                             <FormInput
-                                label="Phone"
+                                label="Phone *"
                                 value={profile.phone}
                                 onChangeText={(t) => setProfile({ ...profile, phone: t })}
                                 placeholder="+1 234 567 890"
@@ -304,28 +304,28 @@ export default function AddLeadScreen() {
                             <View style={{ height: 16 }} />
                             <SectionHeader title="Acquisition Details" theme={theme} />
                             <FormInput
-                                label="Source"
+                                label="Source "
                                 value={acquired.source}
                                 onChangeText={(t) => setAcquired({ ...acquired, source: t })}
                                 placeholder="e.g. Website, LinkedIn"
                                 theme={theme}
                             />
                             <FormInput
-                                label="Sub Source"
+                                label="Sub Source *"
                                 value={acquired.sub_source}
                                 onChangeText={(t) => setAcquired({ ...acquired, sub_source: t })}
                                 placeholder="e.g. Landing Page A"
                                 theme={theme}
                             />
                             <FormInput
-                                label="Campaign"
+                                label="Campaign *"
                                 value={acquired.campaign}
                                 onChangeText={(t) => setAcquired({ ...acquired, campaign: t })}
                                 placeholder="e.g. Summer Sale"
                                 theme={theme}
                             />
                             <FormInput
-                                label="Medium"
+                                label="Medium *"
                                 value={acquired.medium}
                                 onChangeText={(t) => setAcquired({ ...acquired, medium: t })}
                                 placeholder="e.g. CPC, Email"
@@ -379,7 +379,7 @@ export default function AddLeadScreen() {
                         <ActivityIndicator size="small" color="#fff" />
                     ) : (
                         <>
-                            <Plus size={20} color="#fff" />
+                            <Plus size={20} color={theme.btnText} />
                             <Text className="text-[15px] font-semibold" style={[{ color: theme.btnText }]}>Save Lead</Text>
                         </>
                     )}

@@ -205,7 +205,7 @@ export default function InventoryScreen() {
                     <Menu size={24} color={theme.text} />
                 </Pressable>
                 <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
-                <Text className="text-[18px] font-semibold" style={[{ color: theme.text }]}>Project Listing</Text>
+                <Text className="text-[18px] font-bold" style={[{ color: theme.text }]}>Project Listing</Text>
                 </Pressable>
             </View>
 

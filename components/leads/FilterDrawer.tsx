@@ -1,6 +1,6 @@
 import CustomBottomSheet from '@/components/ui/CustomBottomSheet';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Check } from 'lucide-react-native';
+import { CalendarFold, Check } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -11,6 +11,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -47,6 +48,9 @@ const DATE_OPTIONS = [
     { id: 'yesterday', label: 'Yesterday' },
     { id: 'last_week', label: 'Last Week' },
     { id: 'last_month', label: 'Last Month' },
+    { id: 'last_3_months', label: 'Last 3 Months' },
+    { id: 'last_6_months', label: 'Last 6 Months' },
+    { id: 'last_1_year', label: 'Last 1 Year' },
     { id: 'custom', label: 'Custom Date Range' },
 ];
 
@@ -59,7 +63,178 @@ const STATUS_OPTIONS = [
     'New', 'Contacted', 'Qualified', 'Converted', 'Closed'
 ];
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const getLocalYYYYMMDD = (d: Date = new Date()) => {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const TODAY = getLocalYYYYMMDD();
+const TODAY_YEAR = new Date().getFullYear();
+
+function CustomDatePicker({ theme, dateStart, dateEnd, onChangeStart, onChangeEnd, showCalendar, setShowCalendar }: any) {
+    const [calMonth, setCalMonth] = useState<{ year: number; month: number }>(() => {
+        const ref = showCalendar === 'end' && dateEnd ? dateEnd : (dateStart || TODAY);
+        const d = new Date(ref);
+        return { year: d.getFullYear(), month: d.getMonth() };
+    });
+    const [pickerMode, setPickerMode] = useState<'calendar' | 'month' | 'year'>('calendar');
+
+    // Reset picker mode when we swap which calendar is shown
+    useEffect(() => { setPickerMode('calendar'); }, [showCalendar]);
+
+    const isStart = showCalendar === 'start';
+    const calKey = `${calMonth.year}-${String(calMonth.month + 1).padStart(2, '0')}-01`;
+
+    // Generate years list: from (today - 20 years) up to current year, reversed
+    const years = Array.from({ length: 21 }, (_, i) => TODAY_YEAR - i);
+
+    const calTheme = {
+        backgroundColor: theme.inputBg,
+        calendarBackground: theme.inputBg,
+        textSectionTitleColor: theme.textSecondary,
+        selectedDayBackgroundColor: theme.accent,
+        selectedDayTextColor: theme.checkColor,
+        todayTextColor: theme.accent,
+        dayTextColor: theme.text,
+        textDisabledColor: theme.textSecondary,
+        arrowColor: theme.accent,
+        monthTextColor: theme.text,
+        'stylesheet.calendar.header': {
+            header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 10, paddingRight: 10 },
+        },
+    };
+
+    const renderHeader = (date: any) => {
+        const d = new Date(date);
+        const m = d.getMonth();
+        const y = d.getFullYear();
+        return (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6 }}>
+                <TouchableOpacity onPress={() => setPickerMode(pickerMode === 'month' ? 'calendar' : 'month')}>
+                    <Text style={{ color: theme.text, fontWeight: '700', fontSize: 15 }}>
+                        {MONTH_NAMES[m]} {pickerMode === 'month' ? '▲' : '▼'}
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setPickerMode(pickerMode === 'year' ? 'calendar' : 'year')}>
+                    <Text style={{ color: theme.accent, fontWeight: '700', fontSize: 15 }}>
+                        {y} {pickerMode === 'year' ? '▲' : '▼'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
+
+    const markedDates = isStart
+        ? (dateStart ? { [dateStart]: { selected: true, selectedColor: theme.accent, selectedTextColor: theme.checkColor } } : {})
+        : {
+            ...(dateStart ? { [dateStart]: { startingDay: true, color: theme.accent, textColor: theme.checkColor } } : {}),
+            ...(dateEnd ? { [dateEnd]: { endingDay: true, color: theme.accent, textColor: theme.checkColor } } : {}),
+        };
+
+    return (
+        <View style={{ paddingVertical: 8 }}>
+            {/* START DATE */}
+            {showCalendar === 'start' && (
+                <View style={{ borderRadius: 10, borderWidth: 1, borderColor: theme.border, marginBottom: 8, overflow: 'hidden' }}>
+                    {pickerMode === 'month' && (
+                        <View style={{ flexWrap: 'wrap', flexDirection: 'row', padding: 8, backgroundColor: theme.inputBg }}>
+                            {MONTH_NAMES.map((m, i) => (
+                                <TouchableOpacity key={m} style={{ width: '25%', padding: 8, alignItems: 'center' }}
+                                    onPress={() => { setCalMonth(prev => ({ ...prev, month: i })); setPickerMode('calendar'); }}>
+                                    <Text style={{ color: calMonth.month === i ? theme.accent : theme.text, fontWeight: calMonth.month === i ? '700' : '400' }}>{m}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+                    {pickerMode === 'year' && (
+                        <ScrollView style={{ maxHeight: 180, backgroundColor: theme.inputBg }}>
+                            {years.map(y => (
+                                <TouchableOpacity key={y} style={{ padding: 10, alignItems: 'center' }}
+                                    onPress={() => { setCalMonth(prev => ({ ...prev, year: y })); setPickerMode('calendar'); }}>
+                                    <Text style={{ color: calMonth.year === y ? theme.accent : theme.text, fontWeight: calMonth.year === y ? '700' : '400', fontSize: 15 }}>{y}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    )}
+                    {pickerMode === 'calendar' && (
+                        <Calendar
+                            key={calKey}
+                            current={calKey}
+                            onDayPress={(day: any) => { onChangeStart(day.dateString); setShowCalendar(null); }}
+                            markedDates={markedDates}
+                            markingType="custom"
+                            maxDate={TODAY}
+                            renderHeader={renderHeader}
+                            onMonthChange={(m: any) => setCalMonth({ year: m.year, month: m.month - 1 })}
+                            theme={calTheme}
+                            hideExtraDays
+                        />
+                    )}
+                </View>
+            )}
+            <Text style={{ color: theme.textSecondary, fontSize: 11, fontWeight: '600', marginBottom: 4 }}>Start Date</Text>
+            <TouchableOpacity
+                style={{ height: 44, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.inputBg, borderColor: showCalendar === 'start' ? theme.accent : theme.border }}
+                onPress={() => setShowCalendar(showCalendar === 'start' ? null : 'start')}
+            >
+                <Text style={{ color: dateStart ? theme.text : theme.textSecondary, fontSize: 14 }}>{dateStart || 'Select start date'}</Text>
+                <CalendarFold size={18} color={theme.accent} />
+            </TouchableOpacity>
+
+            <View style={{ height: 12 }} />
+
+            {/* END DATE */}
+            {showCalendar === 'end' && (
+                <View style={{ borderRadius: 10, borderWidth: 1, borderColor: theme.border, marginBottom: 8, overflow: 'hidden' }}>
+                    {pickerMode === 'month' && (
+                        <View style={{ flexWrap: 'wrap', flexDirection: 'row', padding: 8, backgroundColor: theme.inputBg }}>
+                            {MONTH_NAMES.map((m, i) => (
+                                <TouchableOpacity key={m} style={{ width: '25%', padding: 8, alignItems: 'center' }}
+                                    onPress={() => { setCalMonth(prev => ({ ...prev, month: i })); setPickerMode('calendar'); }}>
+                                    <Text style={{ color: calMonth.month === i ? theme.accent : theme.text, fontWeight: calMonth.month === i ? '700' : '400' }}>{m}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+                    {pickerMode === 'year' && (
+                        <ScrollView style={{ maxHeight: 180, backgroundColor: theme.inputBg }}>
+                            {years.map(y => (
+                                <TouchableOpacity key={y} style={{ padding: 10, alignItems: 'center' }}
+                                    onPress={() => { setCalMonth(prev => ({ ...prev, year: y })); setPickerMode('calendar'); }}>
+                                    <Text style={{ color: calMonth.year === y ? theme.accent : theme.text, fontWeight: calMonth.year === y ? '700' : '400', fontSize: 15 }}>{y}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    )}
+                    {pickerMode === 'calendar' && (
+                        <Calendar
+                            key={calKey}
+                            current={calKey}
+                            onDayPress={(day: any) => { onChangeEnd(day.dateString); setShowCalendar(null); }}
+                            markedDates={markedDates}
+                            markingType="period"
+                            maxDate={TODAY}
+                            renderHeader={renderHeader}
+                            onMonthChange={(m: any) => setCalMonth({ year: m.year, month: m.month - 1 })}
+                            theme={calTheme}
+                            hideExtraDays
+                        />
+                    )}
+                </View>
+            )}
+            <Text style={{ color: theme.textSecondary, fontSize: 11, fontWeight: '600', marginBottom: 4 }}>End Date</Text>
+            <TouchableOpacity
+                style={{ height: 44, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.inputBg, borderColor: showCalendar === 'end' ? theme.accent : theme.border }}
+                onPress={() => setShowCalendar(showCalendar === 'end' ? null : 'end')}
+            >
+                <Text style={{ color: dateEnd ? theme.text : theme.textSecondary, fontSize: 14 }}>{dateEnd || 'Select end date'}</Text>
+                <CalendarFold size={18} color={theme.accent} />
+            </TouchableOpacity>
+        </View>
+    );
+}
+
 export default function FilterDrawer({
+
     isOpen,
     onClose,
     onApply,
@@ -72,6 +247,7 @@ export default function FilterDrawer({
     // ─── State ─────────────────────────────────────────────────────────────────
     const [activeCategory, setActiveCategory] = useState('date');
     const [dateOption, setDateOption] = useState<string>(''); // today, yesterday...
+    const [showCalendar, setShowCalendar] = useState<'start' | 'end' | null>(null);
 
     // Filter State
     const [filters, setFilters] = useState<FilterValues>({
@@ -140,7 +316,7 @@ export default function FilterDrawer({
         let start = '';
         let end = '';
 
-        const formatDate = (d: Date) => d.toISOString().split('T')[0];
+        const formatDate = getLocalYYYYMMDD;
 
         if (optionId === 'today') {
             start = end = formatDate(today);
@@ -158,10 +334,27 @@ export default function FilterDrawer({
             d.setMonth(d.getMonth() - 1);
             start = formatDate(d);
             end = formatDate(today);
+        } else if (optionId === 'last_3_months') {
+            const d = new Date(today);
+            d.setMonth(d.getMonth() - 3);
+            start = formatDate(d);
+            end = formatDate(today);
+        } else if (optionId === 'last_6_months') {
+            const d = new Date(today);
+            d.setMonth(d.getMonth() - 6);
+            start = formatDate(d);
+            end = formatDate(today);
+        } else if (optionId === 'last_1_year') {
+            const d = new Date(today);
+            d.setFullYear(d.getFullYear() - 1);
+            start = formatDate(d);
+            end = formatDate(today);
         }
 
         if (optionId !== 'custom') {
             setFilters(prev => ({ ...prev, dateStart: start, dateEnd: end }));
+        } else {
+            // Do NOT wipe out existing dateStart/dateEnd if user just selects 'custom' again
         }
     };
 
@@ -205,7 +398,7 @@ export default function FilterDrawer({
         switch (activeCategory) {
             case 'date':
                 return (
-                    <View className="flex-1 p-4">
+                    <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 120 }}>
                         {DATE_OPTIONS.map(opt => (
                             <TouchableOpacity
                                 key={opt.id}
@@ -219,29 +412,17 @@ export default function FilterDrawer({
                             </TouchableOpacity>
                         ))}
                         {dateOption === 'custom' && (
-                            <View className="py-2.5">
-                                <Text className="text-xs font-semibold" style={[{ color: theme.textSecondary }]}>Start Date (YYYY-MM-DD)</Text>
-                                <TextInput
-                                    className="h-11 border rounded-lg px-3"
-                                    style={[{ backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }]}
-                                    value={filters.dateStart}
-                                    onChangeText={t => updateFilter('dateStart', t)}
-                                    placeholder="2024-01-01"
-                                    placeholderTextColor={theme.textSecondary}
-                                />
-                                <View style={{ height: 10 }} />
-                                <Text className="text-xs font-semibold" style={[{ color: theme.textSecondary }]}>End Date (YYYY-MM-DD)</Text>
-                                <TextInput
-                                    className="h-11 border rounded-lg px-3"
-                                    style={[{ backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }]}
-                                    value={filters.dateEnd}
-                                    onChangeText={t => updateFilter('dateEnd', t)}
-                                    placeholder="2024-01-31"
-                                    placeholderTextColor={theme.textSecondary}
-                                />
-                            </View>
+                            <CustomDatePicker
+                                theme={theme}
+                                dateStart={filters.dateStart}
+                                dateEnd={filters.dateEnd}
+                                onChangeStart={(d: string) => updateFilter('dateStart', d)}
+                                onChangeEnd={(d: string) => updateFilter('dateEnd', d)}
+                                showCalendar={showCalendar}
+                                setShowCalendar={setShowCalendar}
+                            />
                         )}
-                    </View>
+                    </ScrollView>
                 );
 
             case 'source':

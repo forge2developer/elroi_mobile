@@ -130,7 +130,7 @@ export default function LoginScreen({ onLogin, isLoading, error }: LoginScreenPr
                                     className="border rounded-lg px-3.5 py-3 text-[15px] mb-4"
                                     style={[{
                                         color: theme.text,
-                                        borderColor: theme.border,
+                                        borderColor: displayError ? '#ef4444' : theme.border,
                                         backgroundColor: theme.card,
                                     }]}
                                 />

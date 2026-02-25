@@ -64,7 +64,7 @@ const MENU_SECTIONS: Section[] = [
                 label: 'Lead Directory',
                 subItems: [
                     { label: 'Total Leads', route: '/(drawer)/leads' },
-                    { label: 'Add New Lead', route: '/(drawer)/add-lead' },
+                   // { label: 'Add New Lead', route: '/(drawer)/add-lead' },
                 ],
             },
             {

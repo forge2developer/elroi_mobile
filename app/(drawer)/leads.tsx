@@ -3,7 +3,7 @@ import FooterBar from '@/components/leads/FooterBar';
 import SearchDrawer from '@/components/leads/SearchDrawer';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DrawerActions, useFocusEffect, useNavigation } from '@react-navigation/native';
-import { Bell, Menu, RefreshCw, Users } from 'lucide-react-native';
+import { Menu, RefreshCw, Users } from 'lucide-react-native';
 import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
@@ -180,8 +180,16 @@ export default function LeadsScreen() {
             if (activeFilters.campaign) f.campaign = activeFilters.campaign;
             if (activeFilters.status) f.status = activeFilters.status;
             if (activeFilters.project) f.project = activeFilters.project;
-            if (activeFilters.dateStart) f.date_start = activeFilters.dateStart;
-            if (activeFilters.dateEnd) f.date_end = activeFilters.dateEnd;
+            if (activeFilters.dateStart && activeFilters.dateStart.trim() !== '') {
+                f.date_start = activeFilters.dateStart;
+                f.start_date = activeFilters.dateStart;
+                f.startDate = activeFilters.dateStart;
+            }
+            if (activeFilters.dateEnd && activeFilters.dateEnd.trim() !== '') {
+                f.date_end = activeFilters.dateEnd;
+                f.end_date = activeFilters.dateEnd;
+                f.endDate = activeFilters.dateEnd;
+            }
 
             if (Object.keys(f).length) body.filters = f;
 
@@ -282,7 +290,7 @@ export default function LeadsScreen() {
                     <Menu size={24} color={theme.text} />
                 </Pressable>
                 <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
-                <Text className="text-[17px] font-bold flex-1" style={[{ color: theme.text }]}>All Leads</Text>
+                    <Text className="text-[17px] font-bold flex-1" style={[{ color: theme.text }]}>All Leads</Text>
                 </Pressable>
                 {/*<Pressable className="p-1">
                     <Bell size={20} color={theme.iconColor} />

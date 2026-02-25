@@ -166,18 +166,8 @@ export default function ProfileScreen() {
                 >
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
-                <Text className="flex-1 text-[18px] font-semibold ml-3" style={[{ color: theme.text }]}>Profile</Text>
-                </Pressable>
-                <Pressable
-                    onPress={() => isEditing ? handleSave() : setIsEditing(true)}
-                    className="p-1.5 pl-20"
-                >
-                    {isEditing ? (
-                        <Check size={22} color={theme.accent} />
-                    ) : (
-                        <Pencil size={22} color={theme.accent} />
-                    )}
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="flex-1 p-1.5">
+                    <Text className="text-[18px] font-bold ml-3" style={[{ color: theme.text }]}>Profile</Text>
                 </Pressable>
             </View>
 

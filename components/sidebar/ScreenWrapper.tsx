@@ -54,7 +54,7 @@ export default function ScreenWrapper({
                     <Menu size={24} color={theme.text} />
                 </Pressable>
                 <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
-                    <Text className="text-[16px] font-semibold mr-auto" numberOfLines={1} style={[{ color: theme.text }]}>
+                    <Text className="text-[17px] font-bold mr-auto" numberOfLines={1} style={[{ color: theme.text }]}>
                         {title}
                     </Text>
                 </Pressable>
