@@ -77,13 +77,17 @@ export default function ScreenWrapper({
             </View>
 
             {/* ─ Content ─ */}
-            <View className="flex-1 items-center justify-center p-6" style={[{ backgroundColor: theme.bg }]}>
-                {children || (
+            {children ? (
+                <View className="flex-1" style={[{ backgroundColor: theme.bg }]}>
+                    {children}
+                </View>
+            ) : (
+                <View className="flex-1 items-center justify-center p-6" style={[{ backgroundColor: theme.bg }]}>
                     <Text className="text-[16px]" style={{ color: theme.textSecondary }}>
                         {title} screen content
                     </Text>
-                )}
-            </View>
+                </View>
+            )}
         </SafeAreaView>
     );
 }

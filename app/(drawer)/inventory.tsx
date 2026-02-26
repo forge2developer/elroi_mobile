@@ -136,7 +136,7 @@ function SearchSheet({ isOpen, onClose, onSearch, theme }: {
     };
 
     return (
-        <CustomBottomSheet isOpen={isOpen} onClose={handleClose} title="Search Projects" height={300}>
+        <CustomBottomSheet isOpen={isOpen} onClose={handleClose} title="Search Projects" height={250}>
             <View style={{ gap: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 52, borderRadius: 12, gap: 10, backgroundColor: theme.inputBg }}>
                     <Search size={20} color={theme.placeholder} />
@@ -183,6 +183,7 @@ export default function InventoryScreen() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [resetKey, setResetKey] = useState(0);
 
     const fetchProjects = useCallback(async () => {
         try {
@@ -226,7 +227,10 @@ export default function InventoryScreen() {
 
     const handleSearch = (q: string) => setSearchQuery(q);
 
-    const handleReset = () => setSearchQuery('');
+    const handleReset = () => {
+        setSearchQuery('');
+        setResetKey(k => k + 1);
+    };
 
     const { width } = useWindowDimensions();
     const isSmallScreen = width < 600;
@@ -249,25 +253,6 @@ export default function InventoryScreen() {
                 <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={{ padding: 6, flex: 1 }}>
                     <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>Project Listing</Text>
                 </Pressable>
-
-                {/* Reset button — only when search is active */}
-                {hasActiveSearch && (
-                    <Pressable
-                        onPress={handleReset}
-                        style={({ pressed }) => ({
-                            flexDirection: 'row', alignItems: 'center', gap: 5,
-                            paddingHorizontal: 12, paddingVertical: 6,
-                            borderRadius: 20, borderWidth: 1,
-                            borderColor: theme.resetBorder,
-                            backgroundColor: theme.resetBg,
-                            opacity: pressed ? 0.8 : 1,
-                            marginRight: 4,
-                        })}
-                    >
-                        <RotateCcw size={13} color={theme.resetText} />
-                        <Text style={{ color: theme.resetText, fontSize: 13, fontWeight: '600' }}>Reset</Text>
-                    </Pressable>
-                )}
             </View>
 
             <View style={{ flex: 1, backgroundColor: theme.bg }}>
@@ -304,7 +289,7 @@ export default function InventoryScreen() {
                             </Text>
                         </View>
                     ) : (
-                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottom + 90, gap: 14 }}>
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100, gap: 14 }}>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 14 }}>
                                 {filteredProjects.map((item, index) => (
                                     <ProjectCard key={item._id || String(index)} project={item} theme={theme} cardWidth={cardWidth} />
@@ -315,35 +300,77 @@ export default function InventoryScreen() {
                 </View>
             </View>
 
-            {/* Floating Search FAB — bottom right */}
-            <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => setIsSearchOpen(true)}
+            {/* Solid background for Android navigation gesture area */}
+            <View
                 style={{
                     position: 'absolute',
-                    bottom: (bottom > 0 ? bottom : 10) + 60,
-                    right: 20,
-                    width: 58,
-                    height: 58,
-                    borderRadius: 29,
-                    backgroundColor: theme.fabBg,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    shadowColor: '#000',
-                    shadowOpacity: 0.3,
-                    shadowRadius: 8,
-                    shadowOffset: { width: 0, height: 4 },
-                    elevation: 10,
-                    zIndex: 999,
-                    borderWidth: isDark ? 1 : 0,
-                    borderColor: '#444',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: bottom > 0 ? bottom : 0,
+                    backgroundColor: isDark ? '#000000' : '#f8f9fa',
+                    zIndex: 10,
                 }}
-            >
-                <Search size={24} color={theme.fabIcon} />
-            </TouchableOpacity>
+            />
+
+            {/* Floating Search / Reset FAB */}
+            {hasActiveSearch ? (
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleReset}
+                    style={{
+                        position: 'absolute',
+                        bottom: (bottom > 0 ? bottom : 10) + 20,
+                        right: 20,
+                        width: 58,
+                        height: 58,
+                        borderRadius: 39,
+                        backgroundColor: theme.fabBg,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        shadowColor: '#000',
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        shadowOffset: { width: 0, height: 4 },
+                        elevation: 10,
+                        zIndex: 999,
+                        borderWidth: isDark ? 1 : 0,
+                        borderColor: '#444',
+                    }}
+                >
+                    <RotateCcw size={24} color={theme.fabIcon} />
+                </TouchableOpacity>
+            ) : (
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setIsSearchOpen(true)}
+                    style={{
+                        position: 'absolute',
+                        bottom: (bottom > 0 ? bottom : 10) + 20,
+                        right: 20,
+                        width: 58,
+                        height: 58,
+                        borderRadius: 39,
+                        backgroundColor: theme.fabBg,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        shadowColor: '#000',
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        shadowOffset: { width: 0, height: 4 },
+                        elevation: 10,
+                        zIndex: 999,
+                        borderWidth: isDark ? 1 : 0,
+                        borderColor: '#444',
+                    }}
+                >
+                    <Search size={24} color={theme.fabIcon} />
+                </TouchableOpacity>
+            )}
 
             {/* Search Bottom Sheet */}
             <SearchSheet
+                key={resetKey}
                 isOpen={isSearchOpen}
                 onClose={() => setIsSearchOpen(false)}
                 onSearch={handleSearch}
