@@ -1,3 +1,4 @@
+import ScreenWrapper from '@/components/sidebar/ScreenWrapper';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft } from 'lucide-react-native';
@@ -15,7 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://[IP_ADDRESS]';
+import { BASE_URL } from '@/src/config/apiConfig';
+const API_BASE_URL = BASE_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FormState = {
@@ -163,24 +165,13 @@ export default function AddLeadScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.bg }]} edges={['top', 'left', 'right']}>
-            {/* Header */}
-            <View className="flex-row items-center p-4 gap-3 border-b" style={[{ borderBottomColor: theme.border, backgroundColor: theme.headerBg }]}>
-                <Pressable onPress={() => navigation.goBack()} className="p-1">
-                    <ArrowLeft size={24} color={theme.text} />
-                </Pressable>
-                <View>
-                    <Text className="text-[20px] font-bold" style={[{ color: theme.text }]}>New Lead</Text>
-                    <Text className="text-[13px] mt-0.5" style={[{ color: theme.textSecondary }]}>Enter the details for the new prospective Lead.</Text>
-                </View>
-            </View>
-
+        <ScreenWrapper title="New Lead">
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 className="flex-1"
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
-                <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
 
                     {/* Contact Info */}
                     <SectionHeader title="CONTACT INFORMATION" theme={theme} color={theme.accent} />
@@ -284,7 +275,7 @@ export default function AddLeadScreen() {
             </KeyboardAvoidingView>
 
             {/* Footer */}
-            <View className="p-4 flex-row gap-3 justify-end border-t" style={[{ backgroundColor: theme.cardBg, borderTopColor: theme.border }]}>
+            <View className="p-4 flex-row gap-3 justify-end border-t" style={[{ backgroundColor: theme.cardBg, borderTopColor: theme.border, position: 'absolute', bottom: 0, left: 0, right: 0 }]}>
                 <Pressable
                     onPress={() => navigation.goBack()}
                     disabled={loading}
@@ -298,12 +289,12 @@ export default function AddLeadScreen() {
                     onPress={handleSubmit}
                     disabled={loading}
                     className="py-3 px-6 rounded-lg items-center justify-center min-w-[120px]"
-                    style={[{ backgroundColor: '#e2e8f0' }]}
+                    style={[{ backgroundColor: '#1a73e8' }]}
                 >
-                    {loading ? <ActivityIndicator size="small" color="#000" /> : <Text className="text-black font-semibold text-[14px]">Create Lead</Text>}
+                    {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text className="text-white font-semibold text-[14px]">Create Lead</Text>}
                 </Pressable>
             </View>
-        </SafeAreaView>
+        </ScreenWrapper>
     );
 }
 
@@ -337,5 +328,3 @@ const InputGroup = ({ label, value, onChange, placeholder, theme, required, keyb
         {error ? <Text style={{ color: theme.danger, fontSize: 11, marginTop: 2 }}>{error}</Text> : null}
     </View>
 );
-
-

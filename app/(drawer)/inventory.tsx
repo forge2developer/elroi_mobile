@@ -31,7 +31,7 @@ type Project = {
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const getApiBaseUrl = () => {
     if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
-    if (Platform.OS === 'android') return 'http://10.0.2.2:5000';
+    if (Platform.OS === 'android') return 'http://[IP_ADDRESS]';
     return 'http://localhost:5000';
 };
 const API_BASE_URL = getApiBaseUrl();
@@ -197,7 +197,7 @@ export default function InventoryScreen() {
                 const userStr = await AsyncStorage.getItem('user');
                 if (userStr) {
                     const user = JSON.parse(userStr);
-                    organization = user.organization || user.org || '';
+                    organization = user.organization || user.org || user.user?.organization || user.user?.org || '';
                 }
             } catch (_) { }
             if (!organization) throw new Error('Organization not found in session.');
@@ -308,7 +308,7 @@ export default function InventoryScreen() {
                     left: 0,
                     right: 0,
                     height: bottom > 0 ? bottom : 0,
-                    backgroundColor: isDark ? '#000000' : '#f8f9fa',
+                    backgroundColor: isDark ? '#000000' : '#ffffff',
                     zIndex: 10,
                 }}
             />

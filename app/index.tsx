@@ -15,8 +15,13 @@ export default function Index() {
       const token = await AsyncStorage.getItem("token");
 
       if (token) {
-        // already logged in → go dashboard
-        router.replace("/(drawer)/dashboard");
+        // Check role to decide which dashboard
+        const role = await AsyncStorage.getItem("userRole");
+        if (role === 'admin' || role === 'manager') {
+          router.replace("/(drawer)/Master_dashboard");
+        } else {
+          router.replace("/(drawer)/dashboard");
+        }
       } else {
         // not logged in → go login
         router.replace("/auth/login");

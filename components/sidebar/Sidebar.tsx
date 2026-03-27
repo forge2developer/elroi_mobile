@@ -47,33 +47,24 @@ type Section = {
     items: MenuItem[];
 };
 
+//  Admin 
+
+
 // ─── Menu Data ───────────────────────────────────────────────
+const userRole = 'admin';
 const MENU_SECTIONS: Section[] = [
     {
         title: 'Workspace',
         items: [
             {
                 icon: LayoutDashboard,
-                label: 'Dashboard',
-                subItems: [
-                    { label: 'Master View', route: '/(drawer)/dashboard' },
-                ],
+                label: userRole === 'admin' ? 'Admin View' : 'Master View',
+                route: userRole === 'admin' ? '/(drawer)/Master_dashboard' : '/(drawer)/dashboard'
             },
             {
                 icon: Users,
-                label: 'Lead Directory',
-                subItems: [
-                    { label: 'Total Leads', route: '/(drawer)/leads' },
-                   // { label: 'Add New Lead', route: '/(drawer)/add-lead' },
-                ],
-            },
-            {
-                icon: Package,
-                label: 'Inventory',
-                subItems: [
-                    { label: 'Projects', route: '/(drawer)/inventory' },
-                    //  { label: 'Add Project', route: '/(drawer)/inventory/new' },
-                ],
+                label: 'Total Leads',
+                route: '/(drawer)/leads',
             },
         ],
     },

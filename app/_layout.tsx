@@ -6,6 +6,7 @@ import { Platform, View } from "react-native";
 import "react-native-reanimated";
 
 import { ThemeContextProvider } from "@/context/theme-context";
+import { AuthProvider } from "@/context/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { config } from "@gluestack-ui/config";
@@ -46,7 +47,9 @@ function InnerLayout() {
 export default function RootLayout() {
   return (
     <ThemeContextProvider>
-      <InnerLayout />
+      <AuthProvider>
+        <InnerLayout />
+      </AuthProvider>
     </ThemeContextProvider>
   );
 }

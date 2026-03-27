@@ -8,6 +8,7 @@ import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
     Pressable,
+    
     ScrollView,
     Text,
     View,
@@ -17,6 +18,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Lead = {
+    _id?: string;
     lead_id: string;
     profile_id: number;
     name: string;
@@ -25,6 +27,7 @@ type Lead = {
     sub_source: string;
     received: string;
     status?: string;
+    exe_user?: string;
 };
 
 type Filters = {
@@ -39,7 +42,8 @@ type Filters = {
 };
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+import { BASE_URL } from '@/src/config/apiConfig';
+const API_BASE_URL = BASE_URL;
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
     New: { bg: '#1e3a5f', text: '#60a5fa' },
@@ -81,6 +85,7 @@ function StatusBadge({ status }: { status?: string }) {
 }
 
 function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<typeof getTheme>; cardWidth?: any }) {
+    const router = require('expo-router').useRouter();
     const date = lead.received
         ? new Date(lead.received).toLocaleDateString('en-GB', {
             day: '2-digit', month: 'short', year: 'numeric',
@@ -88,7 +93,8 @@ function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<ty
         : '—';
 
     return (
-        <View
+        <Pressable
+            onPress={() => router.push({ pathname: '/leads/lead_detail', params: { id: lead._id || lead.lead_id } })}
             className="rounded-xl border overflow-hidden"
             style={[{
                 backgroundColor: theme.cardBg, borderColor: theme.border, shadowColor: theme.shadow, width: cardWidth,
@@ -112,7 +118,7 @@ function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<ty
                 <InfoRow label="Sub Source" value={lead.sub_source} theme={theme} />
                 <InfoRow label="Received" value={date} theme={theme} />
             </View>
-        </View>
+        </Pressable>
     );
 }
 
@@ -159,18 +165,22 @@ export default function LeadsScreen() {
 
             let token = '';
             let organization = '';
+            let currentUserId = '';
             try {
                 const AsyncStorage = require('@react-native-async-storage/async-storage').default;
                 token = (await AsyncStorage.getItem('token')) || '';
                 const userStr = await AsyncStorage.getItem('user');
                 if (userStr) {
                     const user = JSON.parse(userStr);
-                    organization = user.organization || user.org || '';
+                    // More robust extraction of organization and userId
+                    organization = user.organization || user.org || user.user?.organization || user.user?.org || '';
+                    currentUserId = user.user_id || user._id || user.id || user.user?._id || user.user?.id || '';
+                    console.log('[Leads] Org:', organization, 'UserId:', currentUserId);
                 }
             } catch (_) { }
 
             // Build request body
-            const body: Record<string, any> = { organization };
+            const body: Record<string, any> = { organization, userId: currentUserId };
             const f: Record<string, string> = {};
 
             // Map filters
@@ -226,7 +236,7 @@ export default function LeadsScreen() {
             }
 
             const leadsArray = data.leads || data.Leads || data.lead_list || [];
-            console.log('[Leads] fetched', leadsArray.length, 'leads');
+            console.log('[Leads] fetched', leadsArray.length, 'total');
             setLeads(leadsArray);
         } catch (err: any) {
             console.error('[Leads] error:', err.message);
@@ -368,5 +378,3 @@ export default function LeadsScreen() {
         </SafeAreaView>
     );
 }
-
-

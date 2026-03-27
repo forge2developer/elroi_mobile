@@ -6,16 +6,9 @@ import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// API base URL logic
-const getApiBaseUrl = () => {
-    if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
-    // Android emulator localhost
-    if (Platform.OS === 'android') return 'http://10.0.2.2:5000';
-    // iOS/Web localhost
-    return 'http://localhost:5000';
-};
+import { BASE_URL } from '@/src/config/apiConfig';
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = BASE_URL;
 
 export default function LoginRoute() {
     const [isLoading, setIsLoading] = React.useState(false);
@@ -53,15 +46,17 @@ export default function LoginRoute() {
 
             // Store token & user profile
             const { token, ...userProfile } = data.data || data;
+            const userRole = userProfile.role || 'user';
 
             try {
                 await AsyncStorage.setItem('token', token);
                 await AsyncStorage.setItem('user', JSON.stringify(userProfile));
+                await AsyncStorage.setItem('userRole', userRole);
             } catch (e) {
                 console.warn('AsyncStorage not installed, session not saved');
             }
 
-            console.log('Login success:', userProfile);
+            console.log('Login success:', userProfile, 'Role:', userRole);
 
             toast.show({
                 placement: "top",
@@ -82,8 +77,12 @@ export default function LoginRoute() {
                 },
             });
 
-            // Navigate to main app
-            router.replace('/(drawer)/dashboard');
+            // Navigate based on role — admin/manager go to Master Dashboard
+            if (userRole === 'admin' || userRole === 'manager') {
+                router.replace('/(drawer)/Master_dashboard');
+            } else {
+                router.replace('/(drawer)/dashboard');
+            }
         } catch (err: any) {
             console.error('[Login] Exception:', err);
             if (err.message === 'Network request failed') {

@@ -13,9 +13,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function ScreenWrapper({
     title,
     children,
+    headerRight,
 }: {
     title: string;
     children?: React.ReactNode;
+    headerRight?: React.ReactNode;
 }) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
@@ -53,26 +55,15 @@ export default function ScreenWrapper({
                 >
                     <Menu size={24} color={theme.text} />
                 </Pressable>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
-                    <Text className="text-[17px] font-bold mr-auto" numberOfLines={1} style={[{ color: theme.text }]}>
+                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5 flex-1">
+                    <Text className="text-[17px] font-bold" numberOfLines={1} style={[{ color: theme.text }]}>
                         {title}
                     </Text>
                 </Pressable>
 
-                {/* Right: Notification */}
-                <View className="flex-row items-center gap-2">
-                    {/* Search Input Removed as per request */}
-
-                    {/* Online Status 
-                    <View style={[styles.onlineBadge, { backgroundColor: theme.onlineBg }]}>
-                        <View style={[styles.onlineDot, { backgroundColor: theme.onlineDot }]} />
-                        <Text style={[styles.onlineText, { color: theme.onlineText }]}>offline</Text>
-                    </View>*/}
-
-                    {/* Notification Bell 
-                    <Pressable className="p-1.5 rounded-lg">
-                        <Bell size={22} color={theme.iconColor} />
-                    </Pressable>*/}
+                {/* Right Action Area */}
+                <View className="flex-row items-center pr-2">
+                    {headerRight}
                 </View>
             </View>
 

@@ -24,10 +24,12 @@ export default function DrawerLayout() {
                     swipeEnabled: true,
                 }}
             >
+                <Drawer.Screen name="Master_dashboard" options={{ title: 'Master Dashboard' }} />
                 <Drawer.Screen name="dashboard" options={{ title: 'Dashboard' }} />
                 <Drawer.Screen name="leads" options={{ title: 'Leads' }} />
-                <Drawer.Screen name="add-lead" options={{ title: 'Add New Lead' }} />
-                <Drawer.Screen name="inventory" options={{ title: 'Inventory' }} />
+                <Drawer.Screen name="leads/lead_detail" options={{ title: 'Lead Details', drawerItemStyle: { display: 'none' } }} />
+                <Drawer.Screen name="leads/add" options={{ title: 'Add Lead', drawerItemStyle: { display: 'none' } }} />
+                
                 <Drawer.Screen name="profile" options={{ title: 'Profile' }} />
             </Drawer>
         </GestureHandlerRootView>
