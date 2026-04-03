@@ -266,7 +266,7 @@ export default function CalendarScreen() {
               onPress={() =>
                 router.push({
                   pathname: "/(drawer)/leads/lead_detail",
-                  params: { id: item.leadUuid },
+                  params: { id: item.leadUuid, from: 'calendar' },
                 } as any)
               }
             >

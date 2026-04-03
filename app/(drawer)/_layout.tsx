@@ -27,8 +27,6 @@ export default function DrawerLayout() {
                 <Drawer.Screen name="Master_dashboard" options={{ title: 'Master Dashboard' }} />
                 <Drawer.Screen name="dashboard" options={{ title: 'Dashboard' }} />
                 <Drawer.Screen name="leads" options={{ title: 'Leads' }} />
-                <Drawer.Screen name="leads/lead_detail" options={{ title: 'Lead Details', drawerItemStyle: { display: 'none' } }} />
-                <Drawer.Screen name="leads/add" options={{ title: 'Add Lead', drawerItemStyle: { display: 'none' } }} />
 
                 <Drawer.Screen name="profile" options={{ title: 'Profile' }} />
             </Drawer>

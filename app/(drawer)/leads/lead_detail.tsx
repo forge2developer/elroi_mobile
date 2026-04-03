@@ -453,8 +453,20 @@ function LeadDetailsSkeleton({ theme, isDark, isLandscape }: any) {
 }
 
 export default function LeadDetailsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, from } = useLocalSearchParams<{ id: string, from?: string }>();
   const router = useRouter();
+
+  const handleBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else if (from === "leads") {
+      router.replace("/(drawer)/leads" as any);
+    } else if (from === "calendar") {
+      router.replace("/(drawer)/calendar" as any);
+    } else {
+      router.replace("/(drawer)/leads" as any);
+    }
+  }, [from, router]);
 
   const isDark = useColorScheme() === "dark";
   const theme = getTheme(isDark);
@@ -1250,6 +1262,8 @@ export default function LeadDetailsScreen() {
   return (
     <ScreenWrapper
       title="Lead Details"
+      showBackButton={true}
+      onBack={handleBack}
       headerRight={
         !updating ? (
           <Pressable

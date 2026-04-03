@@ -1,8 +1,7 @@
-
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DrawerActions } from '@react-navigation/native';
-import { useNavigation } from 'expo-router';
-import { Menu } from 'lucide-react-native';
+import { useNavigation, useRouter } from 'expo-router';
+import { Menu, ArrowLeft } from 'lucide-react-native';
 import React from 'react';
 import {
     Pressable,
@@ -15,17 +14,22 @@ export default function ScreenWrapper({
     title,
     children,
     headerRight,
+    showBackButton,
+    onBack,
 }: {
     title: string;
     children?: React.ReactNode;
     headerRight?: React.ReactNode;
+    showBackButton?: boolean;
+    onBack?: () => void;
 }) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
     const navigation = useNavigation();
-    // const [searchText, setSearchText] = React.useState('');
-    // const [searchFocused, setSearchFocused] = React.useState(false);
+    const router = useRouter();
+
+    const canGoBack = showBackButton !== undefined ? showBackButton : navigation.canGoBack();
 
     const theme = {
         bg: isDark ? '#000' : '#fff',
@@ -43,20 +47,45 @@ export default function ScreenWrapper({
         iconColor: isDark ? '#aaa' : '#555',
     };
 
-
+    const handleBack = () => {
+        if (onBack) {
+            onBack();
+        } else {
+            router.back();
+        }
+    };
 
     return (
         <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]}>
             {/* ─ Top Bar ─ */}
             <View className="flex-row items-center px-3 py-2 border-b gap-2" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-                {/* Left: Hamburger + Title */}
-                <Pressable
-                    onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-                    className="p-1.5 pl-6"
+                {/* Left: Back Arrow or Hamburger */}
+                {canGoBack ? (
+                    <Pressable
+                        onPress={handleBack}
+                        className="p-1.5 pl-4"
+                    >
+                        <ArrowLeft size={24} color={theme.text} />
+                    </Pressable>
+                ) : (
+                    <Pressable
+                        onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                        className="p-1.5 pl-4"
+                    >
+                        <Menu size={24} color={theme.text} />
+                    </Pressable>
+                )}
+                
+                <Pressable 
+                    onPress={() => {
+                        if (canGoBack) {
+                            handleBack();
+                        } else {
+                            navigation.dispatch(DrawerActions.openDrawer());
+                        }
+                    }} 
+                    className="p-1.5 flex-1"
                 >
-                    <Menu size={24} color={theme.text} />
-                </Pressable>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5 flex-1">
                     <Text className="text-[17px] font-bold" numberOfLines={1} style={[{ color: theme.text }]}>
                         {title}
                     </Text>

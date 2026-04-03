@@ -68,7 +68,7 @@ function getTheme(isDark: boolean) {
         activeBg: isDark ? '#FFFFFF10' : '#EFF6FF',
         activeText: isDark ? '#FFFFFF' : '#2563EB',
         subActiveBg: isDark ? '#FFFFFF08' : '#F1F5F9',
-        indicator: isDark ? '#FFFFFF' : '#3B82F6',
+        indicator: isDark ? 'white' : 'black',
         avatarBg: isDark ? '#111111' : '#F1F5F9',
         logoBg: isDark ? '#111111' : '#EFF6FF',
         logoutBg: isDark ? '#EF444415' : '#FEF2F2',

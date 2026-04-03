@@ -23,6 +23,7 @@ import {
     View,
 } from 'react-native';
 import Svg, { Circle, G, Path } from 'react-native-svg';
+import { RefreshCcw } from 'lucide-react-native';
 
 // ─── API ────────────────────────────────────────────────────────────────────────
 import { BASE_URL } from '@/src/config/apiConfig';
@@ -534,7 +535,7 @@ function DashboardChartSection({ title, chartData, detailItems, executives, them
                     {(startDate !== start || endDate !== today) && (
                         <Pressable onPress={() => { setStartDate(start); setEndDate(today); onDateChange?.(start, today); }}
                             style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: theme.inputBg, borderWidth: 1, borderColor: theme.border }}>
-                            <Text style={{ fontSize: 10, fontWeight: '600', color: theme.textSecondary }}>Reset Date</Text>
+                            <RefreshCcw size={13} color={theme.accent} />
                         </Pressable>
                     )}
                     <Pressable onPress={() => setCalendarVisible(true)}

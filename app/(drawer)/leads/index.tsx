@@ -97,7 +97,7 @@ function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<ty
 
     return (
         <Pressable
-            onPress={() => router.push({ pathname: '/leads/lead_detail', params: { id: lead._id || lead.lead_id } })}
+            onPress={() => router.push({ pathname: '/(drawer)/leads/lead_detail', params: { id: lead._id || lead.lead_id, from: 'leads' } })}
             className="rounded-xl border overflow-hidden"
             style={[{
                 backgroundColor: theme.cardBg, borderColor: theme.border, shadowColor: theme.shadow, width: cardWidth,
