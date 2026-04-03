@@ -6,11 +6,15 @@ interface AuthState {
     organization: string | null;
     role: string | null;
     userId: string | null;
+    name?: string | null;
+    email?: string | null;
+    profileImage?: string | null;
 }
 
 interface AuthContextType extends AuthState {
     login: (data: AuthData) => Promise<void>;
     logout: () => Promise<void>;
+    updateProfile: (data: Partial<AuthData>) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -22,6 +26,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         organization: null,
         role: null,
         userId: null,
+        name: null,
+        email: null,
+        profileImage: null,
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -35,6 +42,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         organization: storedAuth.organization,
                         role: storedAuth.role,
                         userId: storedAuth.userId,
+                        name: storedAuth.name || null,
+                        email: storedAuth.email || null,
+                        profileImage: storedAuth.profileImage || null,
                     });
                 }
             } catch (error) {
@@ -57,6 +67,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const updateProfile = async (data: Partial<AuthData>) => {
+        try {
+            const currentAuth = await getAuth();
+            if (currentAuth) {
+                const updatedAuth = { ...currentAuth, ...data } as AuthData;
+                await saveAuth(updatedAuth);
+                setAuthState(updatedAuth);
+            }
+        } catch (error) {
+            console.error('Update profile save failed', error);
+            throw error;
+        }
+    };
+
     const logout = async () => {
         try {
             await clearAuth();
@@ -65,6 +89,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 organization: null,
                 role: null,
                 userId: null,
+                name: null,
+                email: null,
+                profileImage: null,
             });
         } catch (error) {
             console.error('Logout clear failed', error);
@@ -73,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ ...authState, login, logout, isLoading }}>
+        <AuthContext.Provider value={{ ...authState, login, logout, updateProfile, isLoading }}>
             {children}
         </AuthContext.Provider>
     );

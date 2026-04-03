@@ -1,6 +1,7 @@
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { DrawerActions } from '@react-navigation/native';
+import { useNavigation } from 'expo-router';
 import { Menu } from 'lucide-react-native';
 import React from 'react';
 import {

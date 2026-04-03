@@ -1,35 +1,25 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Index() {
   const router = useRouter();
+  const { token, role, isLoading } = useAuth();
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (isLoading) return;
 
-  const checkAuth = async () => {
-    try {
-      const token = await AsyncStorage.getItem("token");
-
-      if (token) {
-        // Check role to decide which dashboard
-        const role = await AsyncStorage.getItem("userRole");
-        if (role === 'admin' || role === 'manager') {
-          router.replace("/(drawer)/Master_dashboard");
-        } else {
-          router.replace("/(drawer)/dashboard");
-        }
+    if (token) {
+      if (role === 'admin' || role === 'manager') {
+        router.replace("/(drawer)/Master_dashboard");
       } else {
-        // not logged in → go login
-        router.replace("/auth/login");
+        router.replace("/(drawer)/dashboard");
       }
-    } catch (error) {
+    } else {
       router.replace("/auth/login");
     }
-  };
+  }, [token, role, isLoading]);
 
   return (
     <View style={{ flex: 1, justifyContent: "center" }}>

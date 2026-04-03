@@ -14,7 +14,9 @@ import {
     View,
     useWindowDimensions
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/context/AuthContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Lead = {
@@ -28,6 +30,7 @@ type Lead = {
     received: string;
     status?: string;
     exe_user?: string;
+    exe_user_name?: string;
 };
 
 type Filters = {
@@ -113,6 +116,8 @@ function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<ty
 
             <View className="h-px" style={[{ backgroundColor: theme.divider }]} />
             <View className="p-3.5 gap-2">
+                <InfoRow label="Executive" value={lead.exe_user_name || "Unassigned"} theme={theme} accent />
+                <View className="h-px opacity-20" style={[{ backgroundColor: theme.textSecondary }]} />
                 <InfoRow label="Campaign" value={lead.campaign} theme={theme} />
                 <InfoRow label="Source" value={lead.source} theme={theme} />
                 <InfoRow label="Sub Source" value={lead.sub_source} theme={theme} />
@@ -128,6 +133,33 @@ function InfoRow({ label, value, theme, accent }: { label: string; value: string
             <Text className="text-[12px] flex-1" style={[{ color: theme.textSecondary }]}>{label}</Text>
             <Text className="text-[13px] font-medium flex-[2] text-right" style={[{ color: accent ? theme.accent : theme.text }]} numberOfLines={1}>
                 {value || '—'}
+            </Text>
+        </View>
+    );
+}
+
+function StatItem({ label, value, theme, color }: { label: string; value: number; theme: any; color: string }) {
+    return (
+        <View
+            className="p-5 rounded-[24px] border min-w-[160px] shadow-sm"
+            style={[{ 
+                backgroundColor: theme.cardBg, 
+                borderColor: theme.border,
+                shadowColor: color,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 3
+            }]}
+        >
+            <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-[28px] font-black" style={[{ color }]}>
+                    {value}
+                </Text>
+                <View className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+            </View>
+            <Text className="text-[10px] font-black uppercase tracking-[1.5px] leading-4" style={[{ color: theme.textSecondary }]}>
+                {label.split(' ').join('\n')}
             </Text>
         </View>
     );
@@ -157,27 +189,26 @@ export default function LeadsScreen() {
     const [isSearchOpen, setIsSearchOpen] = React.useState(false);
     const [isFilterOpen, setIsFilterOpen] = React.useState(false);
 
+    const { organization: authOrg, token: authToken, userId: authUserId } = useAuth();
+
     // Fetch leads — handles REST JSON gateway in front of gRPC backend
     const fetchLeads = useCallback(async (activeFilters: Filters) => {
         try {
             setLoading(true);
             setError('');
 
-            let token = '';
-            let organization = '';
-            let currentUserId = '';
-            try {
-                const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-                token = (await AsyncStorage.getItem('token')) || '';
-                const userStr = await AsyncStorage.getItem('user');
-                if (userStr) {
-                    const user = JSON.parse(userStr);
-                    // More robust extraction of organization and userId
-                    organization = user.organization || user.org || user.user?.organization || user.user?.org || '';
-                    currentUserId = user.user_id || user._id || user.id || user.user?._id || user.user?.id || '';
-                    console.log('[Leads] Org:', organization, 'UserId:', currentUserId);
-                }
-            } catch (_) { }
+            const organization = authOrg || '';
+            const token = authToken || '';
+            const currentUserId = authUserId || '';
+
+            if (!organization) {
+                console.error('[Leads] Aborting: No organization found in session context.');
+                setLeads([]);
+                setLoading(false);
+                return;
+            }
+
+            console.log('[Leads] Fetching for:', organization);
 
             // Build request body
             const body: Record<string, any> = { organization, userId: currentUserId };
@@ -340,9 +371,6 @@ export default function LeadsScreen() {
                                 <LeadCard key={item.lead_id} lead={item} theme={theme} cardWidth={cardWidth} />
                             ))}
                         </View>
-                        {/* <Text style={[styles.footerText, { color: theme.textSecondary, marginTop: 12 }]}>
-                            Showing {visibleLeads.length} entries
-                        </Text>*/}
                     </ScrollView>
                 )}
 

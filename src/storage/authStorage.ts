@@ -7,6 +7,9 @@ export interface AuthData {
     organization: string;
     role: string;
     userId: string;
+    name?: string;
+    email?: string;
+    profileImage?: string;
 }
 
 /**

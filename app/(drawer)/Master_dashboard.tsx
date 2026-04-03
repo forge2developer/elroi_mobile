@@ -106,6 +106,11 @@ function todayStr() {
     const d = new Date();
     return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
 }
+function last30DaysStr() {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
+}
 
 // ─── Custom Calendar Picker ─────────────────────────────────────────────────────
 function CustomCalendar({
@@ -507,7 +512,8 @@ function DashboardChartSection({ title, chartData, detailItems, executives, them
     defaultExecLabel?: string; modalTitle?: string; searchPlaceholder?: string; emptyText?: string; defaultRole?: string;
 }) {
     const today = todayStr();
-    const [startDate, setStartDate] = useState(today);
+    const start = last30DaysStr();
+    const [startDate, setStartDate] = useState(start);
     const [endDate, setEndDate] = useState(today);
     const [calendarVisible, setCalendarVisible] = useState(false);
     const [execListVisible, setExecListVisible] = useState(false);
@@ -524,13 +530,21 @@ function DashboardChartSection({ title, chartData, detailItems, executives, them
             {/* Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                 <Text style={{ fontSize: 17, fontWeight: '900', color: theme.text, letterSpacing: -0.3 }}>{title}</Text>
-                <Pressable onPress={() => setCalendarVisible(true)}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: theme.inputBg, borderWidth: 1, borderColor: theme.border }}>
-                    <CalendarIcon size={13} color={theme.accent} />
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: theme.textSecondary }}>
-                        {formatDateShort(startDate)} - {formatDateShort(endDate)}
-                    </Text>
-                </Pressable>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {(startDate !== start || endDate !== today) && (
+                        <Pressable onPress={() => { setStartDate(start); setEndDate(today); onDateChange?.(start, today); }}
+                            style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: theme.inputBg, borderWidth: 1, borderColor: theme.border }}>
+                            <Text style={{ fontSize: 10, fontWeight: '600', color: theme.textSecondary }}>Reset Date</Text>
+                        </Pressable>
+                    )}
+                    <Pressable onPress={() => setCalendarVisible(true)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: theme.inputBg, borderWidth: 1, borderColor: theme.border }}>
+                        <CalendarIcon size={13} color={theme.accent} />
+                        <Text style={{ fontSize: 10, fontWeight: '600', color: theme.textSecondary }}>
+                            {formatDateShort(startDate)} - {formatDateShort(endDate)}
+                        </Text>
+                    </Pressable>
+                </View>
             </View>
 
             {/* All Executive Button */}
@@ -593,9 +607,9 @@ const PRESALES_COLORS = {
 // ─── Main Screen ────────────────────────────────────────────────────────────────
 export default function MasterDashboardScreen() {
     const colorScheme = useColorScheme();
+    const { role, token, organization, userId, isLoading: authLoading } = useAuth();
     const isDark = colorScheme === 'dark';
     const theme = getTheme(isDark);
-    const { role: contextRole } = useAuth();
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -604,140 +618,147 @@ export default function MasterDashboardScreen() {
     const [preSalesData, setPreSalesData] = useState<PreSalesData>(DEFAULT_PRESALES);
     const [marketingData, setMarketingData] = useState<PieDataItem[]>([]);
     const [executives, setExecutives] = useState<Executive[]>([]);
-    const [storedRole, setStoredRole] = useState<string | null>(null);
+    const [fetchError, setFetchError] = useState<string | null>(null);
 
-    useEffect(() => {
-        (async () => {
-            try { const r = await AsyncStorage.getItem('userRole'); setStoredRole(r); } catch (_) { }
-        })();
-    }, []);
-
-    const effectiveRole = contextRole || storedRole;
-    const roleLoaded = contextRole !== null || storedRole !== null;
-    const isAdmin = !roleLoaded || effectiveRole === 'admin' || effectiveRole === 'Admin' || effectiveRole === 'manager' || effectiveRole === 'Manager';
+    const isAdmin = role === 'admin' || role === 'Admin' || role === 'manager' || role === 'Manager' || !role;
 
     // ── API Helper ──────────────────────────────────────────────────────────────
-    const getHeaders = useCallback(async () => {
-        const token = (await AsyncStorage.getItem('token')) || '';
+    const getHeaders = useCallback(() => {
         const h: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
         if (token) h['Authorization'] = `Bearer ${token}`;
         return h;
-    }, []);
-
-    const getOrg = useCallback(async () => {
-        try {
-            const userStr = await AsyncStorage.getItem('user');
-            if (userStr) {
-                const user = JSON.parse(userStr);
-                return user.organization || user.org || '';
-            }
-        } catch (_) { }
-        return '';
-    }, []);
+    }, [token]);
 
     // ── Fetch All Data ──────────────────────────────────────────────────────────
-    const fetchDashboardData = useCallback(async () => {
+    const fetchWithTimeout = async (url: string, options: any, timeout = 8000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
         try {
-            const headers = await getHeaders();
-            const organization = await getOrg();
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(id);
+            return response;
+        } catch (e: any) {
+            clearTimeout(id);
+            throw e;
+        }
+    };
 
-            // Admin Stats
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/dashboard/admin-stats?organization=${organization}`, { headers });
-                if (res.ok) {
-                    const json = await res.json();
-                    const d = json.data || json;
-                    setStats({
-                        allLeads: d.allLeads ?? 0,
-                        reengagedLeads: d.reengagedLeads ?? 0,
-                        newEnquiries: d.newEnquiries ?? 0,
-                        activeProspects: d.activeProspects ?? 0,
-                        missedCalls: d.missedCalls ?? 0,
-                        missedFollowups: d.missedFollowups ?? 0,
-                    });
-                }
-            } catch (e) { console.log('[Dashboard] admin-stats failed:', e); }
+    const fetchDashboardData = useCallback(async () => {
+        if (!organization || !token) {
+            console.log('[Dashboard] Skipping fetch: Organization or Token not available');
+            return;
+        }
+        setLoading(true);
+        setFetchError(null);
+        try {
+            const headers = getHeaders();
+            const encodedOrg = encodeURIComponent(organization);
+            const today = todayStr();
+            const start = last30DaysStr();
 
-            // Sales Summary
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/dashboard/sales-summary?organization=${organization}`, { headers });
-                if (res.ok) {
-                    const json = await res.json();
-                    const d = json.data || json;
-                    setSalesData({ siteVisitDone: d.siteVisitDone ?? 0, salesTaken: d.salesTaken ?? 0 });
-                }
-            } catch (e) { console.log('[Dashboard] sales-summary failed:', e); }
+            // Fire off all initial fetches in parallel
+            const [statsRes, salesRes, preSalesRes, execsRes, marketingRes] = await Promise.all([
+                fetchWithTimeout(`${API_BASE_URL}/api/dashboard/admin-stats?organization=${encodedOrg}`, { headers }).catch(e => { console.log('Stats Error:', e); return null; }),
+                fetchWithTimeout(`${API_BASE_URL}/api/dashboard/sales-summary?organization=${encodedOrg}&startDate=${start}&endDate=${today}`, { headers }).catch(e => { console.log('Sales Error:', e); return null; }),
+                fetchWithTimeout(`${API_BASE_URL}/api/dashboard/presales-summary?organization=${encodedOrg}&startDate=${start}&endDate=${today}`, { headers }).catch(e => { console.log('PreSales Error:', e); return null; }),
+                fetchWithTimeout(`${API_BASE_URL}/api/dashboard/executives?organization=${encodedOrg}`, { headers }).catch(e => { console.log('Execs Error:', e); return null; }),
+                fetchWithTimeout(`${API_BASE_URL}/api/dashboard/marketing-summary?organization=${encodedOrg}&startDate=${start}&endDate=${today}`, { headers }).catch(e => { console.log('Marketing Error:', e); return null; }),
+            ]);
 
-            // Pre-Sales Summary
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/dashboard/presales-summary?organization=${organization}`, { headers });
-                if (res.ok) {
-                    const json = await res.json();
-                    const d = json.data || json;
-                    setPreSalesData({
-                        newLead: d.newLead ?? 0, reengaged: d.reengaged ?? 0, lost: d.lost ?? 0,
-                        siteVisitDone: d.siteVisitDone ?? 0, siteVisitSchedule: d.siteVisitSchedule ?? 0,
-                        prospect: d.prospect ?? 0, followUps: d.followUps ?? 0,
-                    });
-                }
-            } catch (e) { console.log('[Dashboard] presales-summary failed:', e); }
+            const errors: string[] = [];
 
-            // Executives
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/dashboard/executives?organization=${organization}`, { headers });
-                if (res.ok) {
-                    const json = await res.json();
-                    const list = json.data || json;
-                    if (Array.isArray(list) && list.length > 0) {
-                        setExecutives(list);
-                    }
-                }
-            } catch (e) { console.log('[Dashboard] executives failed:', e); }
+            if (statsRes?.ok) {
+                const json = await statsRes.json();
+                const d = json.data || json;
+                setStats({
+                    allLeads: d.allLeads ?? 0,
+                    reengagedLeads: d.reengagedLeads ?? 0,
+                    newEnquiries: d.newEnquiries ?? 0,
+                    activeProspects: d.activeProspects ?? 0,
+                    missedCalls: d.missedCalls ?? 0,
+                    missedFollowups: d.missedFollowups ?? 0,
+                });
+            } else if (statsRes) {
+                errors.push(`Stats: ${statsRes.status}`);
+            } else {
+                errors.push('Stats: Network Error');
+            }
 
-            // Initial Marketing Summary
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/dashboard/marketing-summary?organization=${organization}`, { headers });
-                if (res.ok) {
-                    const json = await res.json();
-                    setMarketingData(json.data || json);
-                }
-            } catch (e) { console.log('[Dashboard] marketing-summary failed:', e); }
+            if (salesRes?.ok) {
+                const json = await salesRes.json();
+                const d = json.data || json;
+                setSalesData({ siteVisitDone: d.siteVisitDone ?? 0, salesTaken: d.salesTaken ?? 0 });
+            } else if (salesRes) {
+                errors.push(`Sales: ${salesRes.status}`);
+            }
 
-        } catch (error) {
-            console.error('[Dashboard] Error:', error);
+            if (preSalesRes?.ok) {
+                const json = await preSalesRes.json();
+                const d = json.data || json;
+                setPreSalesData({
+                    newLead: d.newLead ?? 0, reengaged: d.reengaged ?? 0, lost: d.lost ?? 0,
+                    siteVisitDone: d.siteVisitDone ?? 0, siteVisitSchedule: d.siteVisitSchedule ?? 0,
+                    prospect: d.prospect ?? 0, followUps: d.followUps ?? 0,
+                });
+            } else if (preSalesRes) {
+                errors.push(`Pre-Sales: ${preSalesRes.status}`);
+            }
+            
+            if (execsRes?.ok) {
+                const json = await execsRes.json();
+                const list = json.data || json;
+                if (Array.isArray(list)) setExecutives(list);
+            } else if (execsRes) {
+                errors.push(`Executives: ${execsRes.status}`);
+            }
+
+            if (marketingRes?.ok) {
+                const json = await marketingRes.json();
+                setMarketingData(json.data || json || []);
+            } else if (marketingRes) {
+                errors.push(`Marketing: ${marketingRes.status}`);
+            }
+
+            if (errors.length > 0) {
+                setFetchError(`Sync Issues: ${errors.join(', ')}`);
+            } else {
+                setFetchError(null);
+            }
+        } catch (error: any) {
+             console.error('[Dashboard] Unexpected Error:', error.message || error);
+             setFetchError(prev => (prev || '') + `Global: ${error.message || 'Error'}; `);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [getHeaders, getOrg]);
+    }, [getHeaders, organization, token]);
 
-    // ── Fetch Section Data ──────────────────────────────────────────────────────
     const fetchSales = useCallback(async (startDate?: string, endDate?: string, executiveId?: string | null) => {
+        if (!organization || !token) return;
         try {
-            const headers = await getHeaders();
-            const org = await getOrg();
-            let url = `${API_BASE_URL}/api/dashboard/sales-summary?organization=${org}`;
-            if (startDate) url += `&startDate=${startDate}`;
-            if (endDate) url += `&endDate=${endDate}`;
-            if (executiveId) url += `&executiveId=${executiveId}`;
-            const res = await fetch(url, { headers });
+            const headers = getHeaders();
+            let url = `${API_BASE_URL}/api/dashboard/sales-summary?organization=${encodeURIComponent(organization)}`;
+            if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+            if (executiveId) url += `&executiveId=${encodeURIComponent(executiveId)}`;
+            const res = await fetchWithTimeout(url, { headers });
             if (res.ok) {
                 const json = await res.json();
                 const d = json.data || json;
                 setSalesData({ siteVisitDone: d.siteVisitDone ?? 0, salesTaken: d.salesTaken ?? 0 });
             }
-        } catch (e) { console.log('[Dashboard] sales fetch failed:', e); }
-    }, [getHeaders, getOrg]);
+        } catch (e: any) { console.log('[Dashboard] sales fetch error:', e.message || e); }
+    }, [getHeaders, organization, token]);
 
     const fetchPreSales = useCallback(async (startDate?: string, endDate?: string, executiveId?: string | null) => {
+        if (!organization || !token) return;
         try {
-            const headers = await getHeaders();
-            const org = await getOrg();
-            let url = `${API_BASE_URL}/api/dashboard/presales-summary?organization=${org}`;
-            if (startDate) url += `&startDate=${startDate}`;
-            if (endDate) url += `&endDate=${endDate}`;
-            if (executiveId) url += `&executiveId=${executiveId}`;
-            const res = await fetch(url, { headers });
+            const headers = getHeaders();
+            let url = `${API_BASE_URL}/api/dashboard/presales-summary?organization=${encodeURIComponent(organization)}`;
+            if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+            if (executiveId) url += `&executiveId=${encodeURIComponent(executiveId)}`;
+            const res = await fetchWithTimeout(url, { headers });
             if (res.ok) {
                 const json = await res.json();
                 const d = json.data || json;
@@ -747,32 +768,28 @@ export default function MasterDashboardScreen() {
                     prospect: d.prospect ?? 0, followUps: d.followUps ?? 0,
                 });
             }
-        } catch (e) { console.log('[Dashboard] presales fetch failed:', e); }
-    }, [getHeaders, getOrg]);
+        } catch (e: any) { console.log('[Dashboard] presales fetch error:', e.message || e); }
+    }, [getHeaders, organization, token]);
 
     const fetchMarketing = useCallback(async (startDate?: string, endDate?: string, categoryId?: string | null) => {
+        if (!organization || !token) return;
         try {
-            const headers = await getHeaders();
-            const org = await getOrg();
-            let url = `${API_BASE_URL}/api/dashboard/marketing-summary?organization=${org}`;
-            if (startDate) url += `&startDate=${startDate}`;
-            if (endDate) url += `&endDate=${endDate}`;
-            if (categoryId) url += `&campaignCategory=${categoryId}`;
-            const res = await fetch(url, { headers });
+            const headers = getHeaders();
+            let url = `${API_BASE_URL}/api/dashboard/marketing-summary?organization=${encodeURIComponent(organization)}`;
+            if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+            if (categoryId) url += `&campaignCategory=${encodeURIComponent(categoryId)}`;
+            const res = await fetchWithTimeout(url, { headers });
             if (res.ok) {
                 const json = await res.json();
                 setMarketingData(json.data || []);
             }
-        } catch (e) { console.log('[Dashboard] marketing fetch failed:', e); }
-    }, [getHeaders, getOrg]);
+        } catch (e: any) { console.log('[Dashboard] marketing fetch error:', e.message || e); }
+    }, [getHeaders, organization, token]);
 
     useEffect(() => { 
-        fetchDashboardData(); 
-        const today = todayStr();
-        fetchSales(today, today);
-        fetchPreSales(today, today);
-        fetchMarketing(today, today);
-    }, [fetchDashboardData, fetchSales, fetchPreSales, fetchMarketing]);
+        if (organization && token) fetchDashboardData(); 
+    }, [fetchDashboardData, organization, token]);
 
     // ── Chart Data ──────────────────────────────────────────────────────────────
     const salesChartData: PieDataItem[] = [
@@ -821,7 +838,7 @@ export default function MasterDashboardScreen() {
         );
     }
 
-    if (loading) {
+    if (loading && organization && token) {
         return (
             <ScreenWrapper title="Master Dashboard">
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg }}>
@@ -845,6 +862,24 @@ export default function MasterDashboardScreen() {
             <ScrollView style={{ flex: 1, backgroundColor: theme.bg }}
                 contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
                 showsVerticalScrollIndicator={false}>
+
+                {/* Debug Info: Always visible during testing to identify why data is zero 
+                <View style={{ marginBottom: 16, padding: 12, backgroundColor: theme.cardBg, borderRadius: 10, borderLeftWidth: 4, borderLeftColor: theme.accent, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 }}>
+                    <Text style={{ fontSize: 13, color: theme.textSecondary, marginBottom: 4 }}>
+                        Server: <Text style={{ color: theme.text, fontWeight: 'bold' }}>{API_BASE_URL}</Text>
+                    </Text>
+                    <Text style={{ fontSize: 13, color: theme.textSecondary, marginBottom: 4 }}>
+                        Session Org: <Text style={{ color: theme.text, fontWeight: 'bold' }}>{organization || 'N/A'}</Text>
+                    </Text>
+                    <Text style={{ fontSize: 13, color: theme.textSecondary }}>
+                        Auth Status: <Text style={{ color: token ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>{token ? 'Authenticated' : 'No Token'}</Text>
+                    </Text>
+                    {fetchError && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.border }}>
+                            <Text style={{ fontSize: 12, color: '#f44336' }}>Error Details: {fetchError}</Text>
+                        </View>
+                    )}
+                </View>*/}
 
                 {/* Stat Cards */}
                 <View style={{ flexDirection: 'row', gap: 10 }}>

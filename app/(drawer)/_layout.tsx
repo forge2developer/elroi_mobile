@@ -17,9 +17,9 @@ export default function DrawerLayout() {
                     drawerType: 'front',
                     drawerStyle: {
                         width: 280,
-                        backgroundColor: isDark ? '#0a0a0a' : '#ffffff',
+                        backgroundColor: isDark ? '#000000' : '#ffffff',
                         borderRightWidth: 1,
-                        borderRightColor: isDark ? '#333333' : '#e2e8f0',
+                        borderRightColor: isDark ? '#1a1a1a' : '#e2e8f0',
                     },
                     swipeEnabled: true,
                 }}
@@ -29,7 +29,7 @@ export default function DrawerLayout() {
                 <Drawer.Screen name="leads" options={{ title: 'Leads' }} />
                 <Drawer.Screen name="leads/lead_detail" options={{ title: 'Lead Details', drawerItemStyle: { display: 'none' } }} />
                 <Drawer.Screen name="leads/add" options={{ title: 'Add Lead', drawerItemStyle: { display: 'none' } }} />
-                
+
                 <Drawer.Screen name="profile" options={{ title: 'Profile' }} />
             </Drawer>
         </GestureHandlerRootView>

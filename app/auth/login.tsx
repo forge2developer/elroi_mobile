@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { useAuth } from '@/context/AuthContext';
 
 import { BASE_URL } from '@/src/config/apiConfig';
 
@@ -18,45 +19,56 @@ export default function LoginRoute() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
+    const { login } = useAuth();
+
     const handleLogin = async (email: string, password: string) => {
         try {
             setError('');
             setIsLoading(true);
 
             console.log(`[Login] Attempting login to: ${API_BASE_URL}/api/auth/login`);
-            console.log('[Login] Payload:', { email, password: '***' });
-
             const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
 
-            console.log('[Login] Response status:', response.status);
-
             const data = await response.json();
-
             if (!response.ok) {
-                console.error('[Login] Error response:', data);
-                throw new Error(data.message || data.error || 'Invalid credentials');
+                throw new Error(data.message || 'Invalid credentials');
             }
 
-            // Store token & user profile
-            const { token, ...userProfile } = data.data || data;
-            const userRole = userProfile.role || 'user';
-
-            try {
-                await AsyncStorage.setItem('token', token);
-                await AsyncStorage.setItem('user', JSON.stringify(userProfile));
-                await AsyncStorage.setItem('userRole', userRole);
-            } catch (e) {
-                console.warn('AsyncStorage not installed, session not saved');
+            // Extract session data
+            const resData = data.data || data;
+            const token = resData.token;
+            const userRole = resData.role || 'user';
+            const organization = resData.organization || 'Elite'; // Default if missing
+            const userId = resData.user_id || resData._id || 'unknown';
+            
+            // Extract profile data
+            const firstName = resData.firstName || '';
+            const lastName = resData.lastName || '';
+            const fullName = `${firstName} ${lastName}`.trim() || 'User';
+            const emailAddr = resData.email || email;
+            
+            let profileImageUrl = resData.profileImagePath || null;
+            // Prepend base URL if it's a relative path
+            if (profileImageUrl && !profileImageUrl.startsWith('http')) {
+                profileImageUrl = `${API_BASE_URL}${profileImageUrl}`;
             }
 
-            console.log('Login success:', userProfile, 'Role:', userRole);
+            // Use AuthContext to persist session correctly
+            await login({
+                token,
+                role: userRole,
+                organization,
+                userId,
+                name: fullName,
+                email: emailAddr,
+                profileImage: profileImageUrl
+            });
+
+            console.log('Login success and persisted:', organization, userRole);
 
             toast.show({
                 placement: "top",

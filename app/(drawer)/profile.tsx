@@ -5,6 +5,7 @@ import { Check, LogOut, Menu, Pencil, Save, User } from 'lucide-react-native';
 import React from 'react';
 import {
     Alert,
+    Image,
     Pressable,
     ScrollView,
     Text,
@@ -12,53 +13,90 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/context/AuthContext';
+import { BASE_URL } from '@/src/config/apiConfig';
 
 export default function ProfileScreen() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const router = useRouter();
     const navigation = useNavigation();
+    const { token, name, email, role, organization, profileImage, logout, updateProfile } = useAuth();
+    
+    // Helper to fix image URLs for development (relative paths or localhost)
+    const formatProfileImage = (path: string | null) => {
+        if (!path) return null;
+        if (!path.startsWith('http')) {
+            return `${BASE_URL}${path}`;
+        }
+        // Dev fix: Replace localhost with actual server IP if needed
+        if (path.includes('localhost') || path.includes('127.0.0.1')) {
+            return path.replace(/http:\/\/(localhost|127\.0\.0\.1):\d+/, BASE_URL);
+        }
+        return path;
+    };
 
     // User data state (editable)
     const [isEditing, setIsEditing] = React.useState(false);
-    const [loading, setLoading] = React.useState(true);
+    const [loading, setLoading] = React.useState(false);
+    
     const [userData, setUserData] = React.useState({
-        first_name: '',
-        last_name: '',
-        email: '',
+        first_name: name?.split(' ')[0] || '',
+        last_name: name?.split(' ').slice(1).join(' ') || '',
+        email: email || '',
         phone: '',
-        role: '',
-        organization: '',
+        role: role || 'Member',
+        organization: organization || 'None',
+        profileImage: formatProfileImage(profileImage ?? null)
     });
+    
     const [editData, setEditData] = React.useState({ ...userData });
 
+    // Synchronization effect on mount
     React.useEffect(() => {
-        loadUserData();
-    }, []);
+        const syncProfile = async () => {
+            if (!token) return;
+            try {
+                const response = await fetch(`${BASE_URL}/api/users/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success && data.data) {
+                    const user = data.data;
+                    const profile = user.profile || {};
+                    
+                    const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+                    const emailAddr = profile.email || '';
+                    const rawImg = profile.profileImagePath || null;
+                    const formattedImg = formatProfileImage(rawImg);
 
-    const loadUserData = async () => {
-        try {
-            const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-            const userStr = await AsyncStorage.getItem('user');
-            if (userStr) {
-                const user = JSON.parse(userStr);
-                const data = {
-                    first_name: user.first_name || user.firstName || '',
-                    last_name: user.last_name || user.lastName || '',
-                    email: user.email || '',
-                    phone: user.phone || '',
-                    role: user.role || 'Member',
-                    organization: user.organization || user.org || 'None',
-                };
-                setUserData(data);
-                setEditData(data);
+                    // Update UI state
+                    const syncData = {
+                        first_name: profile.firstName || '',
+                        last_name: profile.lastName || '',
+                        email: emailAddr,
+                        phone: profile.phone || '',
+                        role: user.role || 'Member',
+                        organization: user.organization || 'None',
+                        profileImage: formattedImg
+                    };
+                    setUserData(syncData);
+                    setEditData(syncData);
+
+                    // Update Global Session
+                    await updateProfile({
+                        name: fullName,
+                        email: emailAddr,
+                        profileImage: formattedImg ?? undefined
+                    });
+                }
+            } catch (err) {
+                console.error('[Profile Sync] Failed:', err);
             }
-        } catch (error) {
-            console.error('Failed to load user data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+
+        syncProfile();
+    }, [token]);
 
     const theme = {
         bg: isDark ? '#000' : '#fff',
@@ -76,22 +114,15 @@ export default function ProfileScreen() {
 
     const handleSave = async () => {
         try {
-            const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-            const userStr = await AsyncStorage.getItem('user');
-            let currentUser = userStr ? JSON.parse(userStr) : {};
-
-            const updatedUser = {
-                ...currentUser,
-                first_name: editData.first_name,
-                last_name: editData.last_name,
+            // Updated to use Global context
+            await updateProfile({
+                name: `${editData.first_name} ${editData.last_name}`.trim(),
                 email: editData.email,
-                phone: editData.phone,
-            };
-
-            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+                profileImage: editData.profileImage || undefined
+            });
             setUserData({ ...editData });
             setIsEditing(false);
-            Alert.alert('Success', 'Profile updated successfully');
+            Alert.alert('Success', 'Profile updated locally. Cloud sync pending...');
         } catch (error) {
             Alert.alert('Error', 'Failed to save changes');
         }
@@ -113,8 +144,7 @@ export default function ProfileScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-                            await AsyncStorage.multiRemove(['token', 'user']);
+                            await logout();
                             router.replace('/auth/login');
                         } catch (error) {
                             Alert.alert('Error', 'Logout failed');
@@ -138,7 +168,7 @@ export default function ProfileScreen() {
             <Text className="text-[12px] font-medium uppercase tracking-wide mb-1.5" style={[{ color: theme.textSecondary }]}>{label}</Text>
             {isEditing && editable ? (
                 <TextInput
-                    value={editData[key]}
+                    value={editData[key] as string}
                     onChangeText={(text) => setEditData({ ...editData, [key]: text })}
                     className="text-[15px] border rounded-lg px-3 py-2.5"
                     style={[{
@@ -150,7 +180,7 @@ export default function ProfileScreen() {
                 />
             ) : (
                 <Text className="text-[15px]" style={[{ color: theme.text }]}>
-                    {userData[key] || '—'}
+                    {(userData[key] as string) || '—'}
                 </Text>
             )}
         </View>
@@ -162,7 +192,7 @@ export default function ProfileScreen() {
             <View className="flex-row items-center px-4 py-3 border-b" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
                 <Pressable
                     onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-                    className="p-1.5 pl-6"
+                    className="p-1.5"
                 >
                     <Menu size={24} color={theme.text} />
                 </Pressable>
@@ -178,8 +208,16 @@ export default function ProfileScreen() {
             >
                 {/* Avatar Section */}
                 <View className="items-center py-6">
-                    <View className="w-[88px] h-[88px] rounded-full items-center justify-center mb-3.5" style={[{ backgroundColor: theme.avatarBg }]}>
-                        <User size={48} color={theme.accent} />
+                    <View className="w-[88px] h-[88px] rounded-full items-center justify-center mb-3.5 overflow-hidden" style={[{ backgroundColor: theme.avatarBg }]}>
+                        {userData.profileImage ? (
+                            <Image 
+                                source={{ uri: userData.profileImage }} 
+                                className="w-full h-full"
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <User size={48} color={theme.accent} />
+                        )}
                     </View>
                     <Text className="text-[22px] font-bold" style={[{ color: theme.text }]}>
                         {userData.first_name} {userData.last_name}

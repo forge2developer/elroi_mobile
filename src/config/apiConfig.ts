@@ -1,4 +1,4 @@
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://13.232.98.34:5000';
+export const BASE_URL = 'http://192.168.1.6:5000'; // Updated to literal IP for reliability
 
 /**
  * apiConfig.ts
