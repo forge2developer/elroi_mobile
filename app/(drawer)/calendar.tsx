@@ -284,6 +284,7 @@ export default function CalendarScreen() {
   return (
     <ScreenWrapper
       title="Calendar"
+      showBackButton={false}
       headerRight={
         <View style={styles.headerRight}>
           <MapPin size={16} color={themeColors.textMuted} />

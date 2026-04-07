@@ -1,4 +1,4 @@
-export const BASE_URL = 'http://192.168.1.6:5000'; // Updated to literal IP for reliability
+export const BASE_URL = 'http://192.168.1.3:5000'; // Updated to literal IP for reliability
 
 /**
  * apiConfig.ts

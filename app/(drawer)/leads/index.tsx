@@ -29,6 +29,7 @@ type Lead = {
     sub_source: string;
     received: string;
     status?: string;
+    stage?: string;
     exe_user?: string;
     exe_user_name?: string;
 };
@@ -39,6 +40,7 @@ type Filters = {
     sub_source: string;
     campaign: string;
     status: string;
+    stage: string;
     project: string;
     dateStart: string;
     dateEnd: string;
@@ -111,7 +113,7 @@ function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<ty
                 <Text className="text-[15px] font-semibold flex-1" style={[{ color: theme.text }]} numberOfLines={1}>
                     {lead.name}
                 </Text>
-                <StatusBadge status={lead.status} />
+                <StatusBadge status={lead.stage || lead.status} />
             </View>
 
             <View className="h-px" style={[{ backgroundColor: theme.divider }]} />
@@ -182,7 +184,7 @@ export default function LeadsScreen() {
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState('');
     const [filters, setFilters] = React.useState<Filters>({
-        name: '', source: '', sub_source: '', campaign: '', status: '', project: '', dateStart: '', dateEnd: ''
+        name: '', source: '', sub_source: '', campaign: '', status: '', stage: '', project: '', dateStart: '', dateEnd: ''
     });
 
     const [globalSearch, setGlobalSearch] = React.useState(''); // Client-side search params
@@ -220,6 +222,7 @@ export default function LeadsScreen() {
             if (activeFilters.sub_source) f.sub_source = activeFilters.sub_source;
             if (activeFilters.campaign) f.campaign = activeFilters.campaign;
             if (activeFilters.status) f.status = activeFilters.status;
+            if (activeFilters.stage) f.stage = activeFilters.stage;
             if (activeFilters.project) f.project = activeFilters.project;
             if (activeFilters.dateStart && activeFilters.dateStart.trim() !== '') {
                 f.date_start = activeFilters.dateStart;
@@ -301,14 +304,11 @@ export default function LeadsScreen() {
 
     const handleFilter = (filterParams: any) => {
         // Filter triggers API fetch
-        // Destructure to separate subSource from unknown properties if any
-        const { subSource, ...rest } = filterParams;
-
         const newFilters: Filters = {
             ...filters,
-            ...rest,
-            // Map subSource (from Drawer) to sub_source (Filters type)
-            sub_source: subSource || filters.sub_source
+            ...filterParams,
+            // Map subSource (from Drawer camelCase) to sub_source
+            sub_source: filterParams.subSource || filterParams.sub_source || filters.sub_source
         };
 
         setFilters(newFilters);
@@ -317,7 +317,7 @@ export default function LeadsScreen() {
     };
 
     const handleReset = () => {
-        const empty: Filters = { name: '', source: '', sub_source: '', campaign: '', status: '', project: '', dateStart: '', dateEnd: '' };
+        const empty: Filters = { name: '', source: '', sub_source: '', campaign: '', status: '', stage: '', project: '', dateStart: '', dateEnd: '' };
         setFilters(empty);
         setGlobalSearch('');
         fetchLeads(empty);

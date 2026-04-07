@@ -84,8 +84,8 @@ function useMenuData(role: string | null) {
             items: [
                 {
                     icon: LayoutDashboard,
-                    label: role === 'admin' ? 'Master View' : 'Master View',
-                    route: role === 'admin' ? '/(drawer)/Master_dashboard' : '/(drawer)/dashboard'
+                    label: (role === 'admin' || role === 'manager') ? 'Master View' : 'Dashboard',
+                    route: (role === 'admin' || role === 'manager') ? '/(drawer)/Master_dashboard' : '/(drawer)/dashboard'
                 },
                 {
                     icon: Users,
@@ -150,7 +150,7 @@ function CollapsibleMenuItem({ item, theme, pathname }: { item: MenuItem; theme:
                             <Animated.View key={sub.label} entering={FadeInLeft.delay(idx * 50).duration(200)}>
                                 <Pressable
                                     onPress={() => {
-                                        router.push(sub.route as any);
+                                        router.replace(sub.route as any);
                                         Haptics.selectionAsync();
                                     }}
                                     className="py-2.5 px-4 rounded-xl mb-1"
@@ -181,7 +181,7 @@ function FlatMenuItem({ item, theme, pathname }: { item: MenuItem; theme: any; p
         <Pressable
             onPress={() => {
                 if (item.route) {
-                    router.push(item.route as any);
+                    router.replace(item.route as any);
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }
             }}

@@ -1,6 +1,7 @@
 import ScreenWrapper from '@/components/sidebar/ScreenWrapper';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     Calendar as CalendarIcon,
@@ -138,6 +139,10 @@ function CustomCalendar({
         else setViewMonth(viewMonth - 1);
     };
     const nextMonth = () => {
+        const today = new Date();
+        const nextDate = new Date(viewYear, viewMonth + 1, 1);
+        if (nextDate > today) return; // Don't go to future months
+
         if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
         else setViewMonth(viewMonth + 1);
     };
@@ -156,18 +161,23 @@ function CustomCalendar({
                     {label} — Select Year
                 </Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
-                    {yearList.map(y => (
-                        <Pressable
-                            key={y}
-                            onPress={() => { setViewYear(y); setMode('month'); }}
-                            style={{
-                                paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
-                                backgroundColor: y === viewYear ? theme.accent : theme.inputBg,
-                            }}
-                        >
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: y === viewYear ? theme.pillActiveText : theme.text }}>{y}</Text>
-                        </Pressable>
-                    ))}
+                    {yearList.map(y => {
+                        const isFuture = y > new Date().getFullYear();
+                        return (
+                            <Pressable
+                                key={y}
+                                disabled={isFuture}
+                                onPress={() => { setViewYear(y); setMode('month'); }}
+                                style={{
+                                    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
+                                    backgroundColor: y === viewYear ? theme.accent : theme.inputBg,
+                                    opacity: isFuture ? 0.3 : 1
+                                }}
+                            >
+                                <Text style={{ fontSize: 13, fontWeight: '600', color: y === viewYear ? theme.pillActiveText : theme.text }}>{y}</Text>
+                            </Pressable>
+                        );
+                    })}
                 </View>
             </View>
         );
@@ -183,18 +193,24 @@ function CustomCalendar({
                     {label} — Select Month
                 </Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
-                    {FULL_MONTHS.map((m, i) => (
-                        <Pressable
-                            key={m}
-                            onPress={() => { setViewMonth(i); setMode('day'); }}
-                            style={{
-                                paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, width: '30%', alignItems: 'center',
-                                backgroundColor: i === viewMonth ? theme.accent : theme.inputBg,
-                            }}
-                        >
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: i === viewMonth ? theme.pillActiveText : theme.text }}>{MONTHS[i]}</Text>
-                        </Pressable>
-                    ))}
+                    {FULL_MONTHS.map((m, i) => {
+                        const today = new Date();
+                        const isFuture = viewYear > today.getFullYear() || (viewYear === today.getFullYear() && i > today.getMonth());
+                        return (
+                            <Pressable
+                                key={m}
+                                disabled={isFuture}
+                                onPress={() => { setViewMonth(i); setMode('day'); }}
+                                style={{
+                                    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, width: '30%', alignItems: 'center',
+                                    backgroundColor: i === viewMonth ? theme.accent : theme.inputBg,
+                                    opacity: isFuture ? 0.3 : 1
+                                }}
+                            >
+                                <Text style={{ fontSize: 13, fontWeight: '600', color: i === viewMonth ? theme.pillActiveText : theme.text }}>{MONTHS[i]}</Text>
+                            </Pressable>
+                        );
+                    })}
                 </View>
             </View>
         );
@@ -221,7 +237,13 @@ function CustomCalendar({
                         {FULL_MONTHS[viewMonth]} {viewYear} ▾
                     </Text>
                 </Pressable>
-                <Pressable onPress={nextMonth} style={{ padding: 6 }}>
+                <Pressable 
+                    onPress={nextMonth} 
+                    style={({ pressed }) => ({ 
+                        padding: 6, 
+                        opacity: (viewYear > new Date().getFullYear() || (viewYear === new Date().getFullYear() && viewMonth >= new Date().getMonth())) ? 0.2 : (pressed ? 0.6 : 1) 
+                    })}
+                >
                     <ChevronRight size={18} color={theme.text} />
                 </Pressable>
             </View>
@@ -242,12 +264,15 @@ function CustomCalendar({
                     const dateStr = toDateStr(viewYear, viewMonth, day);
                     const isSelected = dateStr === selectedDate;
                     const isToday = dateStr === todayStr();
+                    const isFuture = dateStr > todayStr();
                     return (
                         <Pressable
                             key={dateStr}
+                            disabled={isFuture}
                             onPress={() => onSelect(dateStr)}
                             style={{
                                 width: '14.28%', height: 36, justifyContent: 'center', alignItems: 'center',
+                                opacity: isFuture ? 0.2 : 1
                             }}
                         >
                             <View style={{
@@ -260,7 +285,7 @@ function CustomCalendar({
                             }}>
                                 <Text style={{
                                     fontSize: 13, fontWeight: isSelected ? '700' : '500',
-                                    color: isSelected ? theme.pillActiveText : theme.text,
+                                    color: isSelected ? theme.pillActiveText : (isFuture ? theme.textSecondary : theme.text),
                                 }}>{day}</Text>
                             </View>
                         </Pressable>
@@ -608,6 +633,7 @@ const PRESALES_COLORS = {
 // ─── Main Screen ────────────────────────────────────────────────────────────────
 export default function MasterDashboardScreen() {
     const colorScheme = useColorScheme();
+    const router = useRouter();
     const { role, token, organization, userId, isLoading: authLoading } = useAuth();
     const isDark = colorScheme === 'dark';
     const theme = getTheme(isDark);
@@ -622,6 +648,14 @@ export default function MasterDashboardScreen() {
     const [fetchError, setFetchError] = useState<string | null>(null);
 
     const isAdmin = role === 'admin' || role === 'Admin' || role === 'manager' || role === 'Manager' || !role;
+
+    // ─── Redirect if not authorized ─────────────────────────────────────────────
+    useEffect(() => {
+        if (!authLoading && !isAdmin) {
+            router.replace("/(drawer)/dashboard");
+        }
+    }, [isAdmin, authLoading]);
+
 
     // ── API Helper ──────────────────────────────────────────────────────────────
     const getHeaders = useCallback(() => {
@@ -826,9 +860,11 @@ export default function MasterDashboardScreen() {
     ];
 
     // ── Render ───────────────────────────────────────────────────────────────────
+    if (authLoading) return null;
+
     if (!isAdmin) {
         return (
-            <ScreenWrapper title="Master Dashboard">
+            <ScreenWrapper title="Master Dashboard" showBackButton={false}>
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg, padding: 32 }}>
                     <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text, marginBottom: 8 }}>Access Restricted</Text>
                     <Text style={{ fontSize: 14, color: theme.textSecondary, textAlign: 'center' }}>
@@ -841,7 +877,7 @@ export default function MasterDashboardScreen() {
 
     if (loading && organization && token) {
         return (
-            <ScreenWrapper title="Master Dashboard">
+            <ScreenWrapper title="Master Dashboard" showBackButton={false}>
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg }}>
                     <ActivityIndicator size="large" color={theme.accent} />
                     <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 12 }}>Loading dashboard…</Text>
@@ -851,7 +887,7 @@ export default function MasterDashboardScreen() {
     }
 
     return (
-        <ScreenWrapper title="Master Dashboard" headerRight={ 
+        <ScreenWrapper title="Master Dashboard" showBackButton={false} headerRight={ 
             refreshing ? (
                 <ActivityIndicator size="small" color={theme.accent} />
             ) : (

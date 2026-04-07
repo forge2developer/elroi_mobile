@@ -199,7 +199,7 @@ export default function DashboardScreen() {
     const theme = getTheme(isDark);
 
     return (
-        <ScreenWrapper title="Dashboard">
+        <ScreenWrapper title="Dashboard" showBackButton={false}>
             <ScrollView
                 style={{ flex: 1, width: '100%', backgroundColor: theme.bg }}
                 contentContainerStyle={{

@@ -12,15 +12,17 @@ import {
     View
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
+import { BASE_URL } from '@/src/config/apiConfig';
+import { useAuth } from '@/context/AuthContext';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE_URL = BASE_URL;
 
 type FilterValues = {
     name: string;
     source: string;
     subSource: string;
     campaign: string;
-    status: string;
+    stage: string;
     project: string;
     dateStart: string;
     dateEnd: string;
@@ -35,10 +37,13 @@ type Props = {
 };
 
 // ─── Filter Options Data ───────────────────────────────────────────────────────
+// ... (Keep existing types and props)
+
+// ─── Filter Options Data ───────────────────────────────────────────────────────
 const CATEGORIES = [
     { id: 'date', label: 'Date' },
     { id: 'source', label: 'Source' },
-    { id: 'status', label: 'Status' },
+    { id: 'stage', label: 'Stage' },
     { id: 'project', label: 'Project' },
     { id: 'campaign', label: 'Campaign' },
 ];
@@ -52,15 +57,6 @@ const DATE_OPTIONS = [
     { id: 'last_6_months', label: 'Last 6 Months' },
     { id: 'last_1_year', label: 'Last 1 Year' },
     { id: 'custom', label: 'Custom Date Range' },
-];
-
-const SOURCE_OPTIONS = [
-    'Facebook', 'Google', 'Instagram', 'Website', 'WhatsApp'
-];
-
-// Matching STATUS_COLORS keys
-const STATUS_OPTIONS = [
-    'New', 'Contacted', 'Qualified', 'Converted', 'Closed'
 ];
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -249,61 +245,87 @@ export default function FilterDrawer({
     const [dateOption, setDateOption] = useState<string>(''); // today, yesterday...
     const [showCalendar, setShowCalendar] = useState<'start' | 'end' | null>(null);
 
+    const { organization: authOrg, token: authToken } = useAuth();
+
     // Filter State
     const [filters, setFilters] = useState<FilterValues>({
-        name: '', source: '', subSource: '', campaign: '', status: '', project: '', dateStart: '', dateEnd: ''
+        name: '', source: '', subSource: '', campaign: '', stage: '', project: '', dateStart: '', dateEnd: ''
     });
 
-    // Projects State
+    // Dynamic Options state
     const [projects, setProjects] = useState<any[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(false);
+
+    const [stages, setStages] = useState<any[]>([]);
+    const [loadingStages, setLoadingStages] = useState(false);
+
+    const [sources, setSources] = useState<string[]>([]);
+    const [loadingSources, setLoadingSources] = useState(false);
+
+    // ─── API ───────────────────────────────────────────────────────────────────
+    const fetchProjects = async () => {
+        if (projects.length > 0 || !authOrg) return; 
+        setLoadingProjects(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/projects?organization=${authOrg}`, {
+                headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+            });
+            const data = await res.json();
+            if (res.ok) {
+                const list = Array.isArray(data) ? data : (data.data || data.projects || []);
+                setProjects(list);
+            }
+        } catch (e) { console.error('Failed to fetch projects', e); }
+        finally { setLoadingProjects(false); }
+    };
+
+    const fetchStages = async () => {
+        if (stages.length > 0 || !authOrg) return;
+        setLoadingStages(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/leads/stages/${authOrg}`, {
+                headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+            });
+            const data = await res.json();
+            if (res.ok) {
+                const payload = data.data || data;
+                const list = Array.isArray(payload?.stages) ? payload.stages : (Array.isArray(payload) ? payload : []);
+                setStages(list);
+            }
+        } catch (e) { console.error('Failed to fetch stages', e); }
+        finally { setLoadingStages(false); }
+    };
+
+    const fetchSources = async () => {
+        if (sources.length > 0 || !authOrg) return;
+        setLoadingSources(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/sources?organization=${authOrg}`, {
+                headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+            });
+            const data = await res.json();
+            if (res.ok) {
+                const list = (data.data || []).map((s: any) => s.name);
+                if (list.length > 0) setSources(list);
+            }
+        } catch (e) { console.error('Failed to fetch sources', e); }
+        finally { setLoadingSources(false); }
+    };
 
     // ─── Effects ───────────────────────────────────────────────────────────────
     useEffect(() => {
         if (isOpen && initialValues) {
             setFilters(prev => ({ ...prev, ...initialValues }));
-            // Try to deduce date option from values if possible, or just leave empty
         }
     }, [isOpen, initialValues]);
 
     useEffect(() => {
         if (isOpen) {
-            fetchProjects();
+            if (activeCategory === 'project') fetchProjects();
+            if (activeCategory === 'stage') fetchStages();
+            if (activeCategory === 'source') fetchSources();
         }
-    }, [isOpen]);
-
-    // ─── API ───────────────────────────────────────────────────────────────────
-    const fetchProjects = async () => {
-        if (projects.length > 0) return; // Cache checks
-        setLoadingProjects(true);
-        try {
-            const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-            const token = await AsyncStorage.getItem('token');
-            const userStr = await AsyncStorage.getItem('user');
-            let organization = '';
-
-            if (userStr) {
-                const user = JSON.parse(userStr);
-                organization = user.organization || user.org || '';
-            }
-
-            const url = `${API_BASE_URL}/api/projects?organization=${organization}`;
-            const res = await fetch(url, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {}
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                // Assuming data is array or { projects: [] }
-                const list = Array.isArray(data) ? data : (data.projects || []);
-                setProjects(list);
-            }
-        } catch (e) {
-            console.error('Failed to fetch projects', e);
-        } finally {
-            setLoadingProjects(false);
-        }
-    };
+    }, [isOpen, activeCategory]);
 
     // ─── Handlers ──────────────────────────────────────────────────────────────
     const updateFilter = (key: keyof FilterValues, value: string) => {
@@ -353,28 +375,11 @@ export default function FilterDrawer({
 
         if (optionId !== 'custom') {
             setFilters(prev => ({ ...prev, dateStart: start, dateEnd: end }));
-        } else {
-            // Do NOT wipe out existing dateStart/dateEnd if user just selects 'custom' again
         }
     };
 
-    const toggleSelection = (key: 'source' | 'status' | 'project', value: string) => {
-        // Simple toggle for single selection or comma-separated for multi
-        // Current requirement implies simple filtering, using single string for now or comma?
-        // Let's assume single selection matches current filters type, 
-        // OR better: if user clicks same, deselect. If clicks new, select (Radio behavior)
-        // Re-reading usage: "make filter like this screen shot" -> Screenshot shows checkboxes/radials.
-        // Let's implement multi-select logic joined by comma if the backend supports it,
-        // otherwise single select. `leads.tsx` filter logic just does exact match usually. 
-        // I will implement "Toggle" (add if missing, remove if present) but join with comma?
-        // Actually for now let's stick to single select per field to be safe with backend,
-        // unless user requested multi. Screenshot has checkboxes which implies multi.
-        // I'll stick to single select for safety with existing `leads.tsx` logic unless I refactor that too.
-        // Wait, screenshot shows checkboxes. I should support Checkbox UI but maybe just one active?
-        // Let's support simple single select for now to avoid breaking backend filtering which expects string.
-
+    const toggleSelection = (key: 'source' | 'stage' | 'project', value: string) => {
         const current = filters[key];
-        // If already selected, deselect. Else select.
         if (current === value) {
             updateFilter(key, '');
         } else {
@@ -395,7 +400,7 @@ export default function FilterDrawer({
     const handleResetLocal = () => {
         setDateOption('');
         onReset(); // Calls parent reset
-        setFilters({ name: '', source: '', subSource: '', campaign: '', status: '', project: '', dateStart: '', dateEnd: '' });
+        setFilters({ name: '', source: '', subSource: '', campaign: '', stage: '', project: '', dateStart: '', dateEnd: '' });
     };
 
     // ─── Render Content ────────────────────────────────────────────────────────
@@ -430,33 +435,45 @@ export default function FilterDrawer({
                     </ScrollView>
                 );
 
-            case 'source':
+            case 'source': {
+                const currentSources = sources.length > 0 ? sources : ['Facebook', 'Google', 'Instagram', 'Website', 'WhatsApp'];
                 return (
                     <ScrollView className="flex-1 p-4">
-                        {SOURCE_OPTIONS.map(opt => (
-                            <TouchableOpacity key={opt} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('source', opt)}>
-                                <View className="w-5 h-5 rounded border-2 border-[#ccc] items-center justify-center" style={[filters.source === opt && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
-                                    {filters.source === opt && <Check size={14} color={theme.checkColor} />}
-                                </View>
-                                <Text className="text-[15px]" style={[{ color: theme.text }]}>{opt}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        {loadingSources ? (
+                            <ActivityIndicator size="small" color={theme.accent} style={{ marginTop: 20 }} />
+                        ) : (
+                            currentSources.map(opt => (
+                                <TouchableOpacity key={opt} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('source', opt)}>
+                                    <View className="w-5 h-5 rounded border-2 border-[#ccc] items-center justify-center" style={[filters.source === opt && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
+                                        {filters.source === opt && <Check size={14} color={theme.checkColor} />}
+                                    </View>
+                                    <Text className="text-[15px]" style={[{ color: theme.text }]}>{opt}</Text>
+                                </TouchableOpacity>
+                            ))
+                        )}
                     </ScrollView>
                 );
+            }
 
-            case 'status':
+            case 'stage': {
+                const currentStages = stages.length > 0 ? stages.map(s => s.name) : ['New', 'Contacted', 'Qualified', 'Converted', 'Closed'];
                 return (
                     <ScrollView className="flex-1 p-4">
-                        {STATUS_OPTIONS.map(opt => (
-                            <TouchableOpacity key={opt} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('status', opt)}>
-                                <View className="w-5 h-5 rounded border-2 border-[#ccc] items-center justify-center" style={[filters.status === opt && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
-                                    {filters.status === opt && <Check size={14} color={theme.checkColor} />}
-                                </View>
-                                <Text className="text-[15px]" style={[{ color: theme.text }]}>{opt}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        {loadingStages ? (
+                            <ActivityIndicator size="small" color={theme.accent} style={{ marginTop: 20 }} />
+                        ) : (
+                            currentStages.map(opt => (
+                                <TouchableOpacity key={opt} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('stage', opt)}>
+                                    <View className="w-5 h-5 rounded border-2 border-[#ccc] items-center justify-center" style={[filters.stage === opt && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
+                                        {filters.stage === opt && <Check size={14} color={theme.checkColor} />}
+                                    </View>
+                                    <Text className="text-[15px]" style={[{ color: theme.text }]}>{opt}</Text>
+                                </TouchableOpacity>
+                            ))
+                        )}
                     </ScrollView>
                 );
+            }
 
             case 'project':
                 return (
@@ -467,7 +484,7 @@ export default function FilterDrawer({
                             <Text style={{ padding: 16, color: theme.textSecondary }}>No projects found</Text>
                         ) : (
                             projects.map((proj: any, idx) => {
-                                const pName = proj.project_name || proj.name || 'Unknown';
+                                const pName = proj.name || proj.project_name || 'Unknown';
                                 const isSelected = filters.project === pName;
                                 return (
                                     <TouchableOpacity key={idx} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('project', pName)}>
