@@ -1,10 +1,11 @@
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { DrawerActions, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { Check, LogOut, Menu, Pencil, Save, User } from 'lucide-react-native';
 import React from 'react';
 import {
     Alert,
+    BackHandler,
     Image,
     Pressable,
     ScrollView,
@@ -13,6 +14,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenWrapper from '@/components/sidebar/ScreenWrapper';
 import { useAuth } from '@/context/AuthContext';
 import { BASE_URL } from '@/src/config/apiConfig';
 
@@ -22,6 +24,22 @@ export default function ProfileScreen() {
     const router = useRouter();
     const navigation = useNavigation();
     const { token, name, email, role, organization, profileImage, logout, updateProfile } = useAuth();
+    
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBackPress = () => {
+                if (role === 'admin' || role === 'manager') {
+                    router.replace('/(drawer)/Master_dashboard');
+                } else {
+                    router.replace('/(drawer)/dashboard');
+                }
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => subscription.remove();
+        }, [role, router])
+    );
     
     // Helper to fix image URLs for development (relative paths or localhost)
     const formatProfileImage = (path: string | null) => {
@@ -157,9 +175,11 @@ export default function ProfileScreen() {
 
     if (loading) {
         return (
-            <SafeAreaView className="flex-1 justify-center items-center" style={[{ backgroundColor: theme.headerBg }]}>
-                <Text style={{ color: theme.textSecondary }}>Loading profile...</Text>
-            </SafeAreaView>
+            <ScreenWrapper title="Profile" showBackButton={false}>
+                <View className="flex-1 justify-center items-center" style={[{ backgroundColor: theme.headerBg }]}>
+                    <Text style={{ color: theme.textSecondary }}>Loading profile...</Text>
+                </View>
+            </ScreenWrapper>
         );
     }
 
@@ -187,19 +207,7 @@ export default function ProfileScreen() {
     );
 
     return (
-        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]}>
-            {/* Header */}
-            <View className="flex-row items-center px-4 py-3 border-b" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-                <Pressable
-                    onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-                    className="p-1.5"
-                >
-                    <Menu size={24} color={theme.text} />
-                </Pressable>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="flex-1 p-1.5">
-                    <Text className="text-[18px] font-bold ml-3" style={[{ color: theme.text }]}>Profile</Text>
-                </Pressable>
-            </View>
+        <ScreenWrapper title="Profile" showBackButton={false}>
 
             <ScrollView
                 style={{ backgroundColor: theme.bg }}
@@ -274,7 +282,7 @@ export default function ProfileScreen() {
                     </Text>
                 </Pressable>
             </ScrollView>
-        </SafeAreaView>
+        </ScreenWrapper>
     );
 }
 

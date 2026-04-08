@@ -34,7 +34,7 @@ export default function FooterBar({
         <View
             className="absolute bottom-0 left-0 right-0 w-full flex-row justify-around items-center border-t z-50"
             style={{
-                paddingBottom: Math.max(10, bottomInset),
+                paddingBottom: 6,
                 paddingTop: 10,
                 backgroundColor: theme.bg,
                 borderColor: theme.border,

@@ -4,11 +4,14 @@ import { Building2, ExternalLink, MapPin, User } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    BackHandler,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import {
     AgendaList,
     CalendarProvider,
@@ -38,9 +41,26 @@ const formatDateKey = (date: Date) => {
 };
 
 export default function CalendarScreen() {
-  const { token, organization } = useAuth();
+  const { token, organization, role } = useAuth();
   const isDark = useColorScheme() === "dark";
   const router = useRouter();
+  const { bottom } = useSafeAreaInsets();
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (role === 'admin' || role === 'manager') {
+          router.replace('/(drawer)/Master_dashboard' as any);
+        } else {
+          router.replace('/(drawer)/dashboard' as any);
+        }
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [role, router])
+  );
   const [items, setItems] = useState<any[]>([]);
   const [markedDates, setMarkedDates] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -307,6 +327,7 @@ export default function CalendarScreen() {
             showTodayButton
             todayButtonStyle={{
                 backgroundColor: isDark ? '#222' : '#fff',
+                marginBottom: bottom + 50,
             }}
             theme={{ todayButtonTextColor: themeColors.primary }}
           >
@@ -354,9 +375,6 @@ export default function CalendarScreen() {
                 },
               ].map((leg, i) => (
                 <View key={i} style={styles.legendItem}>
-                  <View
-                    style={[styles.legendDot, { backgroundColor: leg.color }]}
-                  />
                   <Text
                     style={[
                       styles.legendLabel,
@@ -372,6 +390,7 @@ export default function CalendarScreen() {
               sections={items}
               renderItem={({ item }) => renderItem(item as CalendarItem)}
               sectionStyle={{ backgroundColor: themeColors.bg }}
+              contentContainerStyle={{ paddingBottom: bottom + 40 }}
               renderSectionHeader={(info: any) => {
                 const title = typeof info === 'string' ? info : info?.section?.title;
                 if (!title) return null;
@@ -438,7 +457,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendLabel: { fontSize: 11, fontWeight: "600" },
   headerRight: {
     flexDirection: "row",
@@ -453,7 +471,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'transparent',
-    marginTop: 8,
+    marginTop: 0,
   },
   sectionHeaderText: {
     fontSize: 12,

@@ -53,7 +53,7 @@ export default function SearchDrawer({
                     <TextInput
                         className="flex-1 text-base h-full"
                         style={{ color: theme.inputText }}
-                        placeholder="Search by name..."
+                        placeholder="Search by name, phone or ID..."
                         placeholderTextColor={theme.placeholder}
                         value={name}
                         onChangeText={setName}

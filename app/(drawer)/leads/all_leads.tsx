@@ -2,13 +2,14 @@ import FilterDrawer from '@/components/leads/FilterDrawer';
 import FooterBar from '@/components/leads/FooterBar';
 import SearchDrawer from '@/components/leads/SearchDrawer';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import ScreenWrapper from '@/components/sidebar/ScreenWrapper';
 import { DrawerActions, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Menu, RefreshCw, Users } from 'lucide-react-native';
 import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
+    BackHandler,
     Pressable,
-    
     ScrollView,
     Text,
     View,
@@ -83,7 +84,6 @@ function StatusBadge({ status }: { status?: string }) {
     const colors = STATUS_COLORS[status] ?? { bg: '#333', text: '#aaa' };
     return (
         <View className="flex-row items-center px-2 py-0.5 rounded-full gap-1 bg-black dark:bg-white">
-            <View className="w-1.5 h-1.5 rounded-full" style={[{ backgroundColor: colors.text }]} />
             <Text className="text-[11px] font-semibold" style={[{ color: colors.text }]}>{status}</Text>
         </View>
     );
@@ -119,11 +119,10 @@ function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<ty
             <View className="h-px" style={[{ backgroundColor: theme.divider }]} />
             <View className="p-3.5 gap-2">
                 <InfoRow label="Executive" value={lead.exe_user_name || "Unassigned"} theme={theme} accent />
-                <View className="h-px opacity-20" style={[{ backgroundColor: theme.textSecondary }]} />
                 <InfoRow label="Campaign" value={lead.campaign} theme={theme} />
                 <InfoRow label="Source" value={lead.source} theme={theme} />
                 <InfoRow label="Sub Source" value={lead.sub_source} theme={theme} />
-                <InfoRow label="Received" value={date} theme={theme} />
+                <InfoRow label="Created At" value={date} theme={theme} />
             </View>
         </Pressable>
     );
@@ -137,6 +136,43 @@ function InfoRow({ label, value, theme, accent }: { label: string; value: string
                 {value || '—'}
             </Text>
         </View>
+    );
+}
+
+function LeadsSkeleton({ isDark, cardWidth }: { isDark: boolean; cardWidth: any }) {
+    const skeletonColor = isDark ? '#222' : '#e5e7eb';
+    return (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 12 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 }}>
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <View
+                        key={i}
+                        className="rounded-xl border p-4"
+                        style={{
+                            width: cardWidth,
+                            backgroundColor: isDark ? '#161616' : '#fff',
+                            borderColor: isDark ? '#222' : '#e2e8f0',
+                            height: 180,
+                        }}
+                    >
+                        <View className="flex-row items-center gap-2 mb-4">
+                            <View style={{ width: 45, height: 18, borderRadius: 4, backgroundColor: skeletonColor }} />
+                            <View style={{ flex: 1, height: 18, borderRadius: 4, backgroundColor: skeletonColor }} />
+                            <View style={{ width: 60, height: 18, borderRadius: 10, backgroundColor: skeletonColor }} />
+                        </View>
+                        <View style={{ height: 1, backgroundColor: isDark ? '#1e1e1e' : '#f1f5f9', marginBottom: 16 }} />
+                        <View style={{ gap: 10 }}>
+                            {[1, 2, 3, 4].map((j) => (
+                                <View key={j} className="flex-row justify-between">
+                                    <View style={{ width: '35%', height: 12, borderRadius: 4, backgroundColor: skeletonColor }} />
+                                    <View style={{ width: '45%', height: 12, borderRadius: 4, backgroundColor: skeletonColor }} />
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                ))}
+            </View>
+        </ScrollView>
     );
 }
 
@@ -158,7 +194,6 @@ function StatItem({ label, value, theme, color }: { label: string; value: number
                 <Text className="text-[28px] font-black" style={[{ color }]}>
                     {value}
                 </Text>
-                <View className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
             </View>
             <Text className="text-[10px] font-black uppercase tracking-[1.5px] leading-4" style={[{ color: theme.textSecondary }]}>
                 {label.split(' ').join('\n')}
@@ -191,7 +226,25 @@ export default function LeadsScreen() {
     const [isSearchOpen, setIsSearchOpen] = React.useState(false);
     const [isFilterOpen, setIsFilterOpen] = React.useState(false);
 
-    const { organization: authOrg, token: authToken, userId: authUserId } = useAuth();
+    const router = require('expo-router').useRouter();
+    const { organization: authOrg, token: authToken, userId: authUserId, role: authRole } = useAuth();
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                if (authRole === 'admin' || authRole === 'manager') {
+                    router.replace('/(drawer)/Master_dashboard');
+                } else {
+                    router.replace('/(drawer)/dashboard');
+                }
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+            return () => subscription.remove();
+        }, [authRole, router])
+    );
 
     // Fetch leads — handles REST JSON gateway in front of gRPC backend
     const fetchLeads = useCallback(async (activeFilters: Filters) => {
@@ -324,27 +377,12 @@ export default function LeadsScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
-            {/* Top Bar */}
-            <View className="flex-row items-center px-3 py-2.5 border-b gap-2" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5 pl-6">
-                    <Menu size={24} color={theme.text} />
-                </Pressable>
-                <Pressable onPress={() => navigation.dispatch(DrawerActions.openDrawer())} className="p-1.5">
-                    <Text className="text-[17px] font-bold flex-1" style={[{ color: theme.text }]}>All Leads</Text>
-                </Pressable>
-                {/*<Pressable className="p-1">
-                    <Bell size={20} color={theme.iconColor} />
-                </Pressable>*/}
-            </View>
+        <ScreenWrapper title="All Leads" showBackButton={false}>
 
             <View style={{ flex: 1, backgroundColor: theme.bg }}>
                 {/* List */}
                 {loading ? (
-                    <View className="flex-1 items-center justify-center gap-3 p-8">
-                        <ActivityIndicator size="large" color={theme.accent} />
-                        <Text className="text-[15px] text-center" style={[{ color: theme.textSecondary }]}>Loading leads…</Text>
-                    </View>
+                    <LeadsSkeleton isDark={isDark} cardWidth={cardWidth} />
                 ) : error ? (
                     <View className="flex-1 items-center justify-center gap-3 p-8">
                         <Users size={48} color={theme.danger} />
@@ -364,7 +402,7 @@ export default function LeadsScreen() {
                 ) : (
                     <ScrollView
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ padding: 12, paddingBottom: 100 + bottom }}
+                        contentContainerStyle={{ padding: 12, paddingBottom: 70 }}
                     >
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 }}>
                             {visibleLeads.map((item) => (
@@ -403,6 +441,6 @@ export default function LeadsScreen() {
                     initialValues={{ ...filters, subSource: filters.sub_source }}
                 />
             </View>
-        </SafeAreaView>
+        </ScreenWrapper>
     );
 }

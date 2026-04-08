@@ -34,7 +34,7 @@ import Animated, {
     FadeInLeft,
     FadeInDown,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ─── Types ───────────────────────────────────────────────────
@@ -90,7 +90,7 @@ function useMenuData(role: string | null) {
                 {
                     icon: Users,
                     label: 'Total Leads',
-                    route: '/(drawer)/leads',
+                    route: '/(drawer)/leads/all_leads',
                 },
                 {
                     icon: Calendar,
@@ -215,6 +215,7 @@ export default function Sidebar() {
     const router = useRouter();
     const { setThemePreference } = useThemeContext();
     const { role, organization, logout, name, email, profileImage } = useAuth();
+    const insets = useSafeAreaInsets();
 
     // Helper to fix image URLs for development (relative paths or localhost)
     const formatProfileImage = (path: string | null | undefined) => {
@@ -239,7 +240,7 @@ export default function Sidebar() {
     const formattedProfileImage = formatProfileImage(profileImage);
 
     return (
-        <SafeAreaView className="flex-1" style={{ backgroundColor: theme.bg }}>
+        <View className="flex-1" style={{ backgroundColor: theme.bg, paddingTop: insets.top }}>
             {/* Header */}
             <Animated.View entering={FadeInDown.duration(400)} className="px-5 pt-4 pb-6">
                 <View className="flex-row items-center justify-between">
@@ -295,7 +296,14 @@ export default function Sidebar() {
             </ScrollView>
 
             {/* Profile Footer */}
-            <View className="px-4 py-5 border-t" style={{ borderTopColor: theme.border }}>
+            <View 
+                className="px-4 border-t" 
+                style={{ 
+                    borderTopColor: theme.border, 
+                    paddingTop: 20,
+                    paddingBottom: Math.max(insets.bottom, 20) 
+                }}
+            >
                 <Pressable
                     onPress={() => {
                         router.push('/(drawer)/profile' as any);
@@ -313,7 +321,6 @@ export default function Sidebar() {
                         ) : (
                             <User size={24} color={theme.textSecondary} />
                         )}
-                        <View className="absolute bottom-[-1] right-[-1] w-3.5 h-3.5 rounded-full border-2 border-white bg-green-500" style={{ borderColor: theme.surface }} />
                     </View>
                     <View className="flex-1 ml-3">
                         <Text className="text-[14px] font-bold" style={{ color: theme.text }} numberOfLines={1}>
@@ -341,7 +348,7 @@ export default function Sidebar() {
                     <Text className="ml-2 font-bold text-[13px]" style={{ color: theme.logoutText }}>Sign Out</Text>
                 </Pressable>
             </View>
-        </SafeAreaView>
+        </View>
     );
 }
 

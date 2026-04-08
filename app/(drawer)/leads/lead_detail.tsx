@@ -40,6 +40,7 @@ import {
     ActivityIndicator,
     Alert,
     Animated,
+    BackHandler,
     FlatList,
     Linking,
     Modal,
@@ -56,6 +57,7 @@ import {
     SafeAreaView,
     useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 
 import { BASE_URL } from "@/src/config/apiConfig";
 const API_BASE_URL = BASE_URL;
@@ -94,6 +96,9 @@ const GET_LEAD_BY_ID = `
             project
             createdAt
             site_visits_completed
+            merge_id { id UUID name }
+            is_secondary
+            merged_into { id UUID name }
             propertyRequirement {
                 sqft
                 bhk
@@ -140,6 +145,27 @@ const GET_LEAD_BY_ID = `
                 notes
                 createdAt
             }
+        }
+    }
+`;
+
+const SEARCH_LEADS_BY_NAME = `
+    query SearchLeadsByName($organization: String!, $name: String!) {
+        searchLeadsByName(organization: $organization, name: $name) {
+            _id
+            profile_id
+            profile { name phone email }
+            stage
+            status
+        }
+    }
+`;
+
+const MERGE_LEAD = `
+    mutation MergeLead($organization: String!, $primaryLeadId: String!, $secondaryLeadId: String!) {
+        mergeLead(organization: $organization, primaryLeadId: $primaryLeadId, secondaryLeadId: $secondaryLeadId) {
+            _id
+            merge_id { id UUID name }
         }
     }
 `;
@@ -196,8 +222,8 @@ const GET_ALL_PROJECTS = `
 `;
 
 const ADD_INTERESTED_PROJECT = `
-    mutation AddInterestedProject($organization: String!, $leadId: String!, $projectId: Int!, $projectName: String!) {
-        addInterestedProject(organization: $organization, leadId: $leadId, projectId: $projectId, projectName: $projectName) {
+    mutation AddInterestedProject($organization: String!, $leadId: String!, $projectId: Int!) {
+        addInterestedProject(organization: $organization, leadId: $leadId, projectId: $projectId) {
             _id
             interested_projects {
                 project_id
@@ -368,7 +394,6 @@ function StatItem({ label, value, theme, color }: { label: string; value: number
                 <Text className="text-[24px] font-black" style={[{ color }]}>
                     {value}
                 </Text>
-                <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
             </View>
             <Text className="text-[9px] font-black uppercase tracking-[1px] leading-3" style={[{ color: theme.textSecondary }]}>
                 {label}
@@ -457,38 +482,61 @@ export default function LeadDetailsScreen() {
   const router = useRouter();
 
   const handleBack = useCallback(() => {
-    if (router.canGoBack()) {
-      router.back();
-    } else if (from === "leads") {
-      router.replace("/(drawer)/leads" as any);
-    } else if (from === "calendar") {
+    if (from === "calendar") {
       router.replace("/(drawer)/calendar" as any);
     } else {
-      router.replace("/(drawer)/leads" as any);
+      router.replace("/(drawer)/leads/all_leads" as any);
     }
+    return true;
   }, [from, router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        handleBack();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => subscription.remove();
+    }, [handleBack])
+  );
 
   const isDark = useColorScheme() === "dark";
   const theme = getTheme(isDark);
   const { bottom, top, left, right } = useSafeAreaInsets();
-  const { organization: authOrg, token: authToken, userId: authUserId, role: authRole } = useAuth();
+  const { organization: authOrg, token: authToken, userId: authUserId, role: authRole, name: authUserName } = useAuth();
 
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+  const [activeTab, setActiveTab] = useState("Overview");
   const tabNames = ["Overview", "Requirements", "Timeline"];
+  const lastActiveTab = useRef(activeTab);
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+  const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
-      const index = tabNames.indexOf(viewableItems[0].item);
-      if (index !== -1) {
-        setActiveTab(tabNames[index]);
+      const tab = viewableItems[0].item as string;
+      if (tab && tab !== lastActiveTab.current) {
+        lastActiveTab.current = tab;
+        setActiveTab(tab);
       }
     }
-  }).current;
+  }, []);
+
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50
+    itemVisiblePercentThreshold: 60,
+    minimumViewTime: 100
   }).current;
+
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: width,
+    offset: width * index,
+    index,
+  }), [width]);
 
   const [lead, setLead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -501,8 +549,8 @@ export default function LeadDetailsScreen() {
     incomingAnswered: 0,
   });
   const [statsLoading, setStatsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("Overview");
   const [canEdit, setCanEdit] = useState(false);
+
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [stages, setStages] = useState<any[]>([]);
   const [showStageModal, setShowStageModal] = useState(false);
@@ -516,9 +564,12 @@ export default function LeadDetailsScreen() {
   const [noteText, setNoteText] = useState("");
   const [showContact, setShowContact] = useState(false);
   const [allProjects, setAllProjects] = useState<any[]>([]);
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeSearchText, setMergeSearchText] = useState("");
+  const [mergeSearchResults, setMergeSearchResults] = useState<any[]>([]);
+  const [isSearchingLeads, setIsSearchingLeads] = useState(false);
   const toast = useToast();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
+
   const [reqForm, setReqForm] = useState<any>({
     sqft: "",
     price_min: "",
@@ -694,14 +745,9 @@ export default function LeadDetailsScreen() {
     if (!noteText.trim() || !canEdit) return;
     setUpdating(true);
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = authToken;
       const organization = lead.organization;
-      const userId =
-        currentUser?.user_id ||
-        currentUser?._id ||
-        currentUser?.id ||
-        currentUser?.user?._id ||
-        "";
+      const userId = authUserId || "";
 
       await fetch(`${API_BASE_URL}/graphql`, {
         method: "POST",
@@ -744,14 +790,9 @@ export default function LeadDetailsScreen() {
     setLead({ ...lead, stage: newStage });
 
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = authToken;
       const organization = lead.organization;
-      const userId =
-        currentUser?.user_id ||
-        currentUser?._id ||
-        currentUser?.id ||
-        currentUser?.user?._id ||
-        "";
+      const userId = authUserId || "";
 
       // Run mutations in parallel
       await Promise.all([
@@ -934,14 +975,9 @@ export default function LeadDetailsScreen() {
     if (!canEdit) return;
     setUpdatingActivityId(activityId);
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = authToken;
       const organization = lead.organization;
-      const userId =
-        currentUser?.user_id ||
-        currentUser?._id ||
-        currentUser?.id ||
-        currentUser?.user?._id ||
-        "";
+      const userId = authUserId || "";
 
       const isAlreadyImportant = lead?.important_activities?.some(
         (ia: any) => String(ia.activity_id) === String(activityId),
@@ -996,15 +1032,10 @@ export default function LeadDetailsScreen() {
     if (!canEdit) return;
     setUpdating(true);
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = authToken;
       const organization = lead.organization;
-      const userId =
-        currentUser?.user_id ||
-        currentUser?._id ||
-        currentUser?.id ||
-        currentUser?.user?._id ||
-        "";
-      const userName = currentUser?.name || "User";
+      const userId = authUserId || "";
+      const userName = authUserName || "User";
 
       await fetch(`${API_BASE_URL}/graphql`, {
         method: "POST",
@@ -1029,7 +1060,7 @@ export default function LeadDetailsScreen() {
     if (!canEdit) return;
     setUpdating(true);
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = authToken;
       const organization = lead.organization;
 
       await fetch(`${API_BASE_URL}/graphql`, {
@@ -1073,6 +1104,8 @@ export default function LeadDetailsScreen() {
           variables: {
             organization,
             input: {
+              profile_id: lead.profile_id,
+              user_id: authUserId || "",
               lead_id: lead._id,
               updates: "requirement",
               notes: `Updated property requirements: ${reqForm.sqft} sqft, ${reqForm.bhk.join(", ")}`,
@@ -1093,7 +1126,7 @@ export default function LeadDetailsScreen() {
     if (!canEdit) return;
     setUpdating(true);
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = authToken;
       const organization = lead.organization;
 
       await fetch(`${API_BASE_URL}/graphql`, {
@@ -1108,7 +1141,6 @@ export default function LeadDetailsScreen() {
             organization,
             leadId: lead._id,
             projectId,
-            projectName,
           },
         }),
       });
@@ -1125,6 +1157,8 @@ export default function LeadDetailsScreen() {
           variables: {
             organization,
             input: {
+              profile_id: lead.profile_id,
+              user_id: authUserId || "",
               lead_id: lead._id,
               updates: "requirement",
               notes: `Added interested project: ${projectName}`,
@@ -1145,7 +1179,7 @@ export default function LeadDetailsScreen() {
     if (!canEdit) return;
     setUpdating(true);
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = authToken;
       const organization = lead.organization;
 
       await fetch(`${API_BASE_URL}/graphql`, {
@@ -1176,6 +1210,8 @@ export default function LeadDetailsScreen() {
           variables: {
             organization,
             input: {
+              profile_id: lead.profile_id,
+              user_id: authUserId || "",
               lead_id: lead._id,
               updates: "requirement",
               notes: `Removed interested project`,
@@ -1204,26 +1240,105 @@ export default function LeadDetailsScreen() {
 
   // Helper function to handle tab switching on button press
   const handleTabPress = (index: number) => {
-    setActiveTab(tabNames[index]);
-    flatListRef.current?.scrollToIndex({
-      index,
-      animated: true,
-    });
+    const tab = tabNames[index];
+    if (tab !== lastActiveTab.current) {
+        lastActiveTab.current = tab;
+        setActiveTab(tab);
+        flatListRef.current?.scrollToIndex({
+          index,
+          animated: true,
+        });
+    }
   };
 
-  // Animated scroll event listener
-  const onScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-    { useNativeDriver: false },
-  );
 
-  const onMomentumScrollEnd = (event: any) => {
-    const pageSize = event.nativeEvent.layoutMeasurement.width;
-    const currentPage = Math.round(
-      event.nativeEvent.contentOffset.x / pageSize,
+
+  const handleSearchLeadsToMerge = async (query: string) => {
+    if (!query || query.trim().length === 0) return;
+    setIsSearchingLeads(true);
+    try {
+      const organization = authOrg || "";
+      const token = authToken || "";
+
+      const response = await fetch(`${API_BASE_URL}/graphql`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          query: SEARCH_LEADS_BY_NAME,
+          variables: { organization, name: query },
+        }),
+      });
+
+      const result = await response.json();
+      const results = result.data?.searchLeadsByName || [];
+      // Filter out current lead
+      setMergeSearchResults(results.filter((res: any) => res._id !== lead?._id));
+    } catch (err) {
+      console.error("[LeadDetail] Search error:", err);
+    } finally {
+      setIsSearchingLeads(false);
+    }
+  };
+
+  const confirmMerge = (secondaryLead: any) => {
+    Alert.alert(
+      "Confirm Merge",
+      `Are you sure you want to merge ${secondaryLead.profile?.name || "this lead"} into ${lead?.profile?.name || "the current lead"}? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Merge", 
+          style: "destructive",
+          onPress: () => handleMergeLead(secondaryLead)
+        }
+      ]
     );
-    if (currentPage >= 0 && currentPage < tabNames.length) {
-      setActiveTab(tabNames[currentPage]);
+  };
+
+  const handleMergeLead = async (secondaryLead: any) => {
+    setUpdating(true);
+    try {
+      const organization = authOrg || "";
+      const token = authToken || "";
+
+      await fetch(`${API_BASE_URL}/graphql`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          query: MERGE_LEAD,
+          variables: { 
+            organization, 
+            primaryLeadId: lead._id, 
+            secondaryLeadId: secondaryLead._id 
+          },
+        }),
+      });
+
+      toast.show({
+        placement: "top",
+        render: ({ id }) => (
+          <Toast nativeID={"merge-" + id} action="success" variant="solid">
+            <VStack space="xs">
+              <ToastTitle>Leads Merged Successfully</ToastTitle>
+            </VStack>
+          </Toast>
+        ),
+      });
+
+      setShowMergeModal(false);
+      setMergeSearchText("");
+      setMergeSearchResults([]);
+      fetchLeadDetails(); // Refetch to see merged data
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to merge leads");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -1262,7 +1377,7 @@ export default function LeadDetailsScreen() {
   return (
     <ScreenWrapper
       title="Lead Details"
-      showBackButton={true}
+      showBackButton={false}
       onBack={handleBack}
       headerRight={
         !updating ? (
@@ -1317,9 +1432,16 @@ export default function LeadDetailsScreen() {
           </View>
           <View className="flex-1">
             <View className="flex-row items-center justify-between">
-              <Text className="text-xl font-bold" style={{ color: theme.text }}>
-                {canEdit ? lead?.profile?.name : "Protected Lead"}
-              </Text>
+              <View className="flex-row items-center gap-2">
+                <Text className="text-xl font-bold" style={{ color: theme.text }}>
+                  {canEdit ? lead?.profile?.name : "Protected Lead"}
+                </Text>
+                {(lead?.merge_id?.length > 0 || lead?.is_secondary) && (
+                  <View className="px-2 py-0.5 rounded-md bg-zinc-900 dark:bg-zinc-800">
+                    <Text className="text-[9px] font-black text-white uppercase tracking-tighter">Merged</Text>
+                  </View>
+                )}
+              </View>
               <View
                 className="px-2 py-0.5 rounded-lg"
                 style={{ backgroundColor: theme.accentBg }}
@@ -1387,7 +1509,93 @@ export default function LeadDetailsScreen() {
               Add Note
             </Text>
           </Pressable>
+          {(canEdit || lead?.merge_id?.length > 0 || lead?.is_secondary) && (
+            <Pressable
+              onPress={() => {
+                if (lead?.merge_id?.length > 0 || lead?.is_secondary) {
+                  // Find first related lead to jump to
+                  const relatedId = lead.is_secondary ? lead.merged_into?.id : lead.merge_id?.[0]?.id;
+                  if (relatedId) {
+                    router.push({ pathname: "/(drawer)/leads/lead_detail", params: { id: relatedId } } as any);
+                  }
+                } else {
+                  setShowMergeModal(true);
+                }
+              }}
+              className="w-14 items-center justify-center rounded-2xl border relative"
+              style={{
+                borderColor: (lead?.merge_id?.length > 0 || lead?.is_secondary) ? theme.accent : theme.border,
+                backgroundColor: (lead?.merge_id?.length > 0 || lead?.is_secondary) ? theme.accent + "15" : theme.accentBg,
+              }}
+            >
+              <View 
+                className="absolute -top-2 px-1.5 py-0.5 rounded-full" 
+                style={{ backgroundColor: theme.accent, zIndex: 10 }}
+              >
+                <Text 
+                  className="text-[7px] font-black uppercase" 
+                  style={{ color: isDark ? '#000' : '#fff' }}
+                >
+                  { (lead?.merge_id?.length > 0 || lead?.is_secondary) ? "Merged" : "Merge" }
+                </Text>
+              </View>
+              <RefreshCw 
+                size={20} 
+                color={(lead?.merge_id?.length > 0 || lead?.is_secondary) ? theme.accent : theme.text} 
+              />
+            </Pressable>
+          )}
         </View>
+
+        {/* Merged Leads Display */}
+        {(lead?.merge_id?.length > 0 || (lead?.is_secondary && lead?.merged_into)) && (
+          <View className="px-4 mb-4">
+            <View className="p-4 rounded-[28px] border" style={{ backgroundColor: theme.cardBg, borderColor: theme.border }}>
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-[10px] font-black uppercase tracking-[1px]" style={{ color: theme.textSecondary }}>
+                  {lead?.is_secondary ? "Merged Into" : "Secondary Leads"}
+                </Text>
+                <View className="px-2 py-0.5 rounded-full bg-purple-500/10">
+                  <Text className="text-[9px] font-bold text-purple-500 uppercase">Merged</Text>
+                </View>
+              </View>
+              
+              {lead?.is_secondary && lead?.merged_into ? (
+                <Pressable 
+                  onPress={() => router.push({ pathname: "/(drawer)/leads/lead_detail", params: { id: lead.merged_into?.id } } as any)}
+                  className="flex-row items-center p-3 rounded-2xl bg-purple-500/5 border border-purple-500/10"
+                >
+                  <View className="w-10 h-10 rounded-xl bg-purple-500/20 items-center justify-center mr-3">
+                    <Text className="text-purple-500 font-bold">{lead.merged_into?.name?.charAt(0) || "?"}</Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-bold" style={{ color: theme.text }}>{lead.merged_into?.name || "Unknown Lead"}</Text>
+                    <Text className="text-[10px]" style={{ color: theme.textSecondary }}>Primary Lead • Tap to swap</Text>
+                  </View>
+                  <RefreshCw size={14} color={theme.textSecondary} />
+                </Pressable>
+              ) : lead?.merge_id?.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {lead.merge_id.map((ml: any) => ml && (
+                    <Pressable 
+                      key={ml.id}
+                      onPress={() => router.push({ pathname: "/(drawer)/leads/lead_detail", params: { id: ml.id } } as any)}
+                      className="flex-row items-center p-3 mr-3 rounded-2xl bg-zinc-500/5 border border-zinc-500/10"
+                    >
+                      <View className="w-8 h-8 rounded-lg bg-zinc-500/20 items-center justify-center mr-3">
+                        <Text className="text-zinc-500 font-bold">{ml.name?.charAt(0) || "?"}</Text>
+                      </View>
+                      <View>
+                        <Text className="text-xs font-bold" style={{ color: theme.text }}>{ml.name || "Unknown"}</Text>
+                        <Text className="text-[9px]" style={{ color: theme.textSecondary }}>Secondary</Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              ) : null}
+            </View>
+          </View>
+        )}
 
         {/* ─── Stats Section ─────────────────────────────────────────────── */}
         <View className="mb-4 mt-2">
@@ -1396,11 +1604,11 @@ export default function LeadDetailsScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
             >
-                <StatItem label="Site Visits Completed" value={lead?.site_visits_completed || 0} theme={theme} color="#10b981" />
-                <StatItem label="Ongoing Missed Calls" value={stats.ongoingMissed} theme={theme} color="#ef4444" />
-                <StatItem label="Ongoing Answered Calls" value={stats.ongoingAnswered} theme={theme} color="#3b82f6" />
-                <StatItem label="Incoming Missed Calls" value={stats.incomingMissed} theme={theme} color="#f59e0b" />
-                <StatItem label="Incoming Answered Calls" value={stats.incomingAnswered} theme={theme} color="#8b5cf6" />
+                <StatItem label="Site Visits Completed" value={lead?.site_visits_completed || 0} theme={theme} color={stageColor} />
+                <StatItem label="Ongoing Missed Calls" value={stats.ongoingMissed} theme={theme} color={stageColor} />
+                <StatItem label="Ongoing Answered Calls" value={stats.ongoingAnswered} theme={theme} color={stageColor} />
+                <StatItem label="Incoming Missed Calls" value={stats.incomingMissed} theme={theme} color={stageColor} />
+                <StatItem label="Incoming Answered Calls" value={stats.incomingAnswered} theme={theme} color={stageColor} />
             </ScrollView>
         </View>
 
@@ -1456,9 +1664,13 @@ export default function LeadDetailsScreen() {
           pagingEnabled
           scrollEnabled
           showsHorizontalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={onScroll}
-          onMomentumScrollEnd={onMomentumScrollEnd}
+          onViewableItemsChanged={handleViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          getItemLayout={getItemLayout}
+          initialNumToRender={3}
+          windowSize={3}
+          maxToRenderPerBatch={3}
+          removeClippedSubviews={false}
           keyExtractor={(item) => item}
           renderItem={({ item: tab }) => (
             <ScrollView
@@ -1467,10 +1679,33 @@ export default function LeadDetailsScreen() {
               style={{ width }}
               contentContainerStyle={{
                 paddingTop: 2,
+                paddingBottom: 120,
               }}
               showsVerticalScrollIndicator={false}
               scrollEnabled={!Platform.select({ web: true })}
             >
+              {isLandscape && (canEdit || lead?.merge_id?.length > 0 || lead?.is_secondary) && (
+                <View className="absolute right-4 top-4 z-10">
+                   <Pressable
+                    onPress={() => {
+                      if (lead?.merge_id?.length > 0 || lead?.is_secondary) {
+                        const relatedId = lead.is_secondary ? lead.merged_into?.id : lead.merge_id?.[0]?.id;
+                        if (relatedId) {
+                          router.push({ pathname: "/(drawer)/leads/lead_detail", params: { id: relatedId } } as any);
+                        }
+                      } else {
+                        setShowMergeModal(true);
+                      }
+                    }}
+                    className="flex-row items-center px-4 py-2 bg-purple-600 rounded-full shadow-sm"
+                  >
+                    <RefreshCw size={14} color="#fff" className="mr-2" />
+                    <Text className="text-xs font-bold text-white uppercase">
+                      {(lead?.merge_id?.length > 0 || lead?.is_secondary) ? "View Merged" : "Merge Lead"}
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
               {tab === "Overview" && (
                 <>
                   <View className="flex-row gap-3 mx-4 mt-4 mb-6">
@@ -1490,10 +1725,6 @@ export default function LeadDetailsScreen() {
                         Stage
                       </Text>
                       <View className="flex-row items-center">
-                        <View
-                          className="h-1.5 w-1.5 rounded-full mr-2"
-                          style={{ backgroundColor: stageColor }}
-                        />
                         <Text
                           className="text-[15px] font-black"
                           style={{ color: theme.text }}
@@ -1526,10 +1757,6 @@ export default function LeadDetailsScreen() {
                         Status
                       </Text>
                       <View className="flex-row items-center">
-                        <View
-                          className="h-1.5 w-1.5 rounded-full mr-2"
-                          style={{ backgroundColor: statusColor }}
-                        />
                         <Text
                           className="text-[15px] font-black"
                           style={{ color: theme.text }}
@@ -1714,7 +1941,7 @@ export default function LeadDetailsScreen() {
                           </View>
 
                           {/* Details Grid */}
-                          <View className="flex-row" style={{ gap: 10 }}>
+                          <View className="flex-row flex-wrap" style={{ gap: 10 }}>
                             {[
                               {
                                 label: "Source",
@@ -1747,7 +1974,7 @@ export default function LeadDetailsScreen() {
                                   <cell.icon
                                     size={12}
                                     color={cell.color}
-                                    className="mr-2"
+                                    className="mr-2 ml-2"
                                   />
                                   <Text
                                     className="text-[9px] font-bold uppercase tracking-widest"
@@ -2161,8 +2388,14 @@ export default function LeadDetailsScreen() {
                   {/* Quick Filters (Horizontal Scroll) */}
                   <ScrollView
                     horizontal
+                    nestedScrollEnabled={true}
                     showsHorizontalScrollIndicator={false}
-                    className="px-4 mb-6 -mx-4"
+                    className="mb-4 -mx-4 px-4"
+                    contentContainerStyle={{ 
+                      paddingRight: 100,
+                      flexDirection: 'row',
+                      alignItems: 'center'
+                    }}
                   >
                     {[
                       "all",
@@ -2495,10 +2728,6 @@ export default function LeadDetailsScreen() {
                   <Text className="text-lg" style={{ color: theme.text }}>
                     {s.name}
                   </Text>
-                  <View
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: s.color || theme.purple }}
-                  />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -3181,6 +3410,78 @@ export default function LeadDetailsScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      {/* Merge Modal */}
+      <Modal
+        visible={showMergeModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowMergeModal(false)}
+      >
+        <Pressable
+          className="justify-end flex-1 bg-black/50"
+          onPress={() => setShowMergeModal(false)}
+        >
+          <Pressable
+            className="p-6 rounded-t-[40px] h-[70%]"
+            style={{ backgroundColor: theme.cardBg }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-6" />
+            <Text className="mb-1 text-2xl font-black" style={{ color: theme.text }}>Merge Leads</Text>
+            <Text className="mb-6 text-sm" style={{ color: theme.textSecondary }}>
+              Search for a secondary lead to merge into this primary lead.
+            </Text>
+
+            <View className="flex-row items-center mb-6" style={{ gap: 10 }}>
+              <TextInput
+                value={mergeSearchText}
+                onChangeText={(v) => {
+                  setMergeSearchText(v);
+                  if (v.trim().length > 0) handleSearchLeadsToMerge(v);
+                }}
+                placeholder="Search by name, email, phone or ID..."
+                placeholderTextColor={theme.textSecondary}
+                className="flex-1 p-4 text-base border rounded-2xl"
+                style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
+              />
+              {isSearchingLeads && <ActivityIndicator color={theme.accent} />}
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {mergeSearchResults.length > 0 ? (
+                mergeSearchResults.map((res: any) => (
+                  <TouchableOpacity
+                    key={res._id}
+                    onPress={() => confirmMerge(res)}
+                    className="flex-row items-center p-4 mb-3 border rounded-[28px]"
+                    style={{ borderColor: theme.border, backgroundColor: theme.bg }}
+                  >
+                    <View className="w-10 h-10 rounded-full items-center justify-center mr-4" style={{ backgroundColor: theme.accentBg }}>
+                      <Text className="font-bold text-lg" style={{ color: theme.accent }}>{res.profile.name?.charAt(0)}</Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="font-bold" style={{ color: theme.text }}>{res.profile.name}</Text>
+                      <Text className="text-xs" style={{ color: theme.textSecondary }}>#{res.profile_id} • {res.stage}</Text>
+                    </View>
+                    <Plus size={20} color={theme.accent} />
+                  </TouchableOpacity>
+                ))
+              ) : mergeSearchText.length > 2 && !isSearchingLeads ? (
+                <View className="items-center py-10">
+                  <Text style={{ color: theme.textSecondary }}>No matching leads found</Text>
+                </View>
+              ) : null}
+            </ScrollView>
+            
+            <TouchableOpacity
+              onPress={() => setShowMergeModal(false)}
+              className="items-center py-4 mt-4"
+            >
+              <Text className="font-bold" style={{ color: theme.textSecondary }}>Cancel</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>

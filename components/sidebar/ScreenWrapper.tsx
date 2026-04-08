@@ -56,7 +56,7 @@ export default function ScreenWrapper({
     };
 
     return (
-        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]}>
+        <SafeAreaView className="flex-1" style={[{ backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right', 'bottom']}>
             {/* ─ Top Bar ─ */}
             <View className="flex-row items-center px-3 py-2 border-b gap-2" style={[{ backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
                 {/* Left: Back Arrow or Hamburger */}

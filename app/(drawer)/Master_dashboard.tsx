@@ -597,7 +597,6 @@ function DashboardChartSection({ title, chartData, detailItems, executives, them
                     {detailItems.map(item => (
                         <View key={item.label} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7, paddingHorizontal: 10, borderRadius: 10, backgroundColor: theme.inputBg }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: item.color }} />
                                 <Text style={{ fontSize: 11, color: theme.textSecondary }} numberOfLines={1}>{item.label}</Text>
                             </View>
                             <Text style={{ fontSize: 14, fontWeight: '800', color: theme.text }}>{item.value}</Text>

@@ -262,6 +262,9 @@ export default function FilterDrawer({
     const [sources, setSources] = useState<string[]>([]);
     const [loadingSources, setLoadingSources] = useState(false);
 
+    const [campaigns, setCampaigns] = useState<string[]>([]);
+    const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+
     // ─── API ───────────────────────────────────────────────────────────────────
     const fetchProjects = async () => {
         if (projects.length > 0 || !authOrg) return; 
@@ -273,7 +276,9 @@ export default function FilterDrawer({
             const data = await res.json();
             if (res.ok) {
                 const list = Array.isArray(data) ? data : (data.data || data.projects || []);
-                setProjects(list);
+                // Ensure unique project names
+                const uniqueProjects = Array.from(new Map(list.map((p: any) => [p.name || p.project_name || 'Unknown', p])).values());
+                setProjects(uniqueProjects);
             }
         } catch (e) { console.error('Failed to fetch projects', e); }
         finally { setLoadingProjects(false); }
@@ -289,8 +294,10 @@ export default function FilterDrawer({
             const data = await res.json();
             if (res.ok) {
                 const payload = data.data || data;
-                const list = Array.isArray(payload?.stages) ? payload.stages : (Array.isArray(payload) ? payload : []);
-                setStages(list);
+                const rawList = Array.isArray(payload?.stages) ? payload.stages : (Array.isArray(payload) ? payload : []);
+                // Ensure unique stage names
+                const uniqueStages = Array.from(new Map(rawList.map((s: any) => [s.name, s])).values());
+                setStages(uniqueStages);
             }
         } catch (e) { console.error('Failed to fetch stages', e); }
         finally { setLoadingStages(false); }
@@ -305,11 +312,30 @@ export default function FilterDrawer({
             });
             const data = await res.json();
             if (res.ok) {
-                const list = (data.data || []).map((s: any) => s.name);
-                if (list.length > 0) setSources(list);
+                const rawList = (data.data || []).map((s: any) => s.name);
+                // Ensure unique source names (case-insensitive deduplication)
+                const uniqueSources = Array.from(new Set(rawList.map((s: string) => s.trim()))) as string[];
+                if (uniqueSources.length > 0) setSources(uniqueSources);
             }
         } catch (e) { console.error('Failed to fetch sources', e); }
         finally { setLoadingSources(false); }
+    };
+
+    const fetchCampaigns = async () => {
+        if (campaigns.length > 0 || !authOrg) return;
+        setLoadingCampaigns(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/campaigns?organization=${authOrg}`, {
+                headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+            });
+            const data = await res.json();
+            if (res.ok) {
+                const list = Array.isArray(data) ? data : (data.data || data.campaigns || []);
+                const uniqueCampaigns = Array.from(new Set(list.map((c: any) => (c.campaignName || c.name || 'Unknown').trim()))) as string[];
+                setCampaigns(uniqueCampaigns);
+            }
+        } catch (e) { console.error('Failed to fetch campaigns', e); }
+        finally { setLoadingCampaigns(false); }
     };
 
     // ─── Effects ───────────────────────────────────────────────────────────────
@@ -324,6 +350,7 @@ export default function FilterDrawer({
             if (activeCategory === 'project') fetchProjects();
             if (activeCategory === 'stage') fetchStages();
             if (activeCategory === 'source') fetchSources();
+            if (activeCategory === 'campaign') fetchCampaigns();
         }
     }, [isOpen, activeCategory]);
 
@@ -378,7 +405,7 @@ export default function FilterDrawer({
         }
     };
 
-    const toggleSelection = (key: 'source' | 'stage' | 'project', value: string) => {
+    const toggleSelection = (key: 'source' | 'stage' | 'project' | 'campaign', value: string) => {
         const current = filters[key];
         if (current === value) {
             updateFilter(key, '');
@@ -442,8 +469,8 @@ export default function FilterDrawer({
                         {loadingSources ? (
                             <ActivityIndicator size="small" color={theme.accent} style={{ marginTop: 20 }} />
                         ) : (
-                            currentSources.map(opt => (
-                                <TouchableOpacity key={opt} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('source', opt)}>
+                            currentSources.map((opt, idx) => (
+                                <TouchableOpacity key={`${opt}-${idx}`} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('source', opt)}>
                                     <View className="w-5 h-5 rounded border-2 border-[#ccc] items-center justify-center" style={[filters.source === opt && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
                                         {filters.source === opt && <Check size={14} color={theme.checkColor} />}
                                     </View>
@@ -462,8 +489,8 @@ export default function FilterDrawer({
                         {loadingStages ? (
                             <ActivityIndicator size="small" color={theme.accent} style={{ marginTop: 20 }} />
                         ) : (
-                            currentStages.map(opt => (
-                                <TouchableOpacity key={opt} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('stage', opt)}>
+                            currentStages.map((opt, idx) => (
+                                <TouchableOpacity key={`${opt}-${idx}`} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('stage', opt)}>
                                     <View className="w-5 h-5 rounded border-2 border-[#ccc] items-center justify-center" style={[filters.stage === opt && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
                                         {filters.stage === opt && <Check size={14} color={theme.checkColor} />}
                                     </View>
@@ -501,17 +528,36 @@ export default function FilterDrawer({
 
             case 'campaign':
                 return (
-                    <View style={{ padding: 16 }}>
-                        <Text className="text-xs font-semibold" style={[{ color: theme.textSecondary, marginBottom: 8 }]}>Campaign Name</Text>
-                        <TextInput
-                            className="h-11 border rounded-lg px-3"
-                            style={[{ backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }]}
-                            value={filters.campaign}
-                            onChangeText={t => updateFilter('campaign', t)}
-                            placeholder="Type campaign name..."
-                            placeholderTextColor={theme.textSecondary}
-                        />
-                    </View>
+                    <ScrollView className="flex-1 p-4">
+                        <View className="mb-6">
+                            <Text className="text-xs font-semibold" style={[{ color: theme.textSecondary, marginBottom: 8 }]}>Manual Search</Text>
+                            <TextInput
+                                className="h-11 border rounded-lg px-3"
+                                style={[{ backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }]}
+                                value={filters.campaign}
+                                onChangeText={t => updateFilter('campaign', t)}
+                                placeholder="Type campaign name..."
+                                placeholderTextColor={theme.textSecondary}
+                            />
+                        </View>
+
+                        <Text className="text-xs font-semibold uppercase tracking-widest mb-4" style={[{ color: theme.textSecondary }]}>Available Campaigns</Text>
+                        
+                        {loadingCampaigns ? (
+                            <ActivityIndicator size="small" color={theme.accent} style={{ marginTop: 20 }} />
+                        ) : campaigns.length === 0 ? (
+                            <Text style={{ padding: 16, color: theme.textSecondary }}>No campaigns found</Text>
+                        ) : (
+                            campaigns.map((opt, idx) => (
+                                <TouchableOpacity key={`${opt}-${idx}`} className="flex-row items-center mb-[18px] gap-3" onPress={() => toggleSelection('campaign', opt)}>
+                                    <View className="w-5 h-5 rounded border-2 border-[#ccc] items-center justify-center" style={[filters.campaign === opt && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
+                                        {filters.campaign === opt && <Check size={14} color={theme.checkColor} />}
+                                    </View>
+                                    <Text className="text-[15px]" style={[{ color: theme.text }]}>{opt}</Text>
+                                </TouchableOpacity>
+                            ))
+                        )}
+                    </ScrollView>
                 );
 
 
@@ -563,7 +609,7 @@ export default function FilterDrawer({
                 </View>
 
                 {/* Footer */}
-                <View className="flex-row gap-3 p-4 border-t" style={[{ borderTopColor: theme.border }]}>
+                <View className="flex-row gap-3 p-4 pb-6 border-t" style={[{ borderTopColor: theme.border }]}>
                     <Pressable
                         className="flex-1 h-12 rounded-lg justify-center items-center"
                         style={[{ backgroundColor: theme.btnSecondaryBg }]}
