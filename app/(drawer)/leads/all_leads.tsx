@@ -9,6 +9,8 @@ import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
     BackHandler,
+    FlatList,
+    Platform,
     Pressable,
     ScrollView,
     Text,
@@ -79,17 +81,32 @@ function getTheme(isDark: boolean) {
 }
 
 // ─── Components ─────────────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status?: string }) {
+const StatusBadge = React.memo(({ status }: { status?: string }) => {
     if (!status) return null;
+    const isNew = status.toLowerCase() === 'new';
+    const label = isNew ? 'NEW LEAD' : status.toUpperCase();
     const colors = STATUS_COLORS[status] ?? { bg: '#333', text: '#aaa' };
+    
     return (
-        <View className="flex-row items-center px-2 py-0.5 rounded-full gap-1 bg-black dark:bg-white">
-            <Text className="text-[11px] font-semibold" style={[{ color: colors.text }]}>{status}</Text>
+        <View className="flex-row items-center px-2.5 py-1 rounded-md" 
+            style={[{ backgroundColor: colors.bg }]}>
+            <Text className="text-[9px] font-black tracking-widest text-white">{label}</Text>
         </View>
     );
-}
+});
 
-function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<typeof getTheme>; cardWidth?: any }) {
+const InfoRow = React.memo(({ label, value, theme, accent }: { label: string; value: string; theme: ReturnType<typeof getTheme>; accent?: boolean }) => {
+    return (
+        <View className="flex-row justify-between items-center">
+            <Text className="text-[12px] flex-1" style={[{ color: theme.textSecondary }]}>{label}</Text>
+            <Text className="text-[13px] font-medium flex-[2] text-right" style={[{ color: accent ? theme.accent : theme.text }]} numberOfLines={1}>
+                {value || '—'}
+            </Text>
+        </View>
+    );
+});
+
+const LeadCard = React.memo(({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<typeof getTheme>; cardWidth?: any }) => {
     const router = require('expo-router').useRouter();
     const date = lead.received
         ? new Date(lead.received).toLocaleDateString('en-GB', {
@@ -126,18 +143,7 @@ function LeadCard({ lead, theme, cardWidth }: { lead: Lead; theme: ReturnType<ty
             </View>
         </Pressable>
     );
-}
-
-function InfoRow({ label, value, theme, accent }: { label: string; value: string; theme: ReturnType<typeof getTheme>; accent?: boolean }) {
-    return (
-        <View className="flex-row justify-between items-center">
-            <Text className="text-[12px] flex-1" style={[{ color: theme.textSecondary }]}>{label}</Text>
-            <Text className="text-[13px] font-medium flex-[2] text-right" style={[{ color: accent ? theme.accent : theme.text }]} numberOfLines={1}>
-                {value || '—'}
-            </Text>
-        </View>
-    );
-}
+});
 
 function LeadsSkeleton({ isDark, cardWidth }: { isDark: boolean; cardWidth: any }) {
     const skeletonColor = isDark ? '#222' : '#e5e7eb';
@@ -180,8 +186,8 @@ function StatItem({ label, value, theme, color }: { label: string; value: number
     return (
         <View
             className="p-5 rounded-[24px] border min-w-[160px] shadow-sm"
-            style={[{ 
-                backgroundColor: theme.cardBg, 
+            style={[{
+                backgroundColor: theme.cardBg,
                 borderColor: theme.border,
                 shadowColor: color,
                 shadowOffset: { width: 0, height: 4 },
@@ -206,7 +212,7 @@ function StatItem({ label, value, theme, color }: { label: string; value: number
 export default function LeadsScreen() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
-    const theme = getTheme(isDark);
+    const theme = React.useMemo(() => getTheme(isDark), [isDark]);
     const navigation = useNavigation();
     const { bottom } = useSafeAreaInsets();
     const { width } = useWindowDimensions();
@@ -400,16 +406,23 @@ export default function LeadsScreen() {
                         {globalSearch ? <Text className="mt-2" style={{ color: theme.textSecondary }}>Search: "{globalSearch}"</Text> : null}
                     </View>
                 ) : (
-                    <ScrollView
+                    <FlatList
+                        data={visibleLeads}
+                        key={`${isSmallScreen ? '1' : '2'}-column-list`}
+                        numColumns={isSmallScreen ? 1 : 2}
+                        renderItem={({ item }) => (
+                            <View style={{ width: cardWidth, paddingHorizontal: 6, marginBottom: 12 }}>
+                                <LeadCard lead={item} theme={theme} cardWidth="100%" />
+                            </View>
+                        )}
+                        keyExtractor={(item) => item.lead_id}
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ padding: 12, paddingBottom: 70 }}
-                    >
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 }}>
-                            {visibleLeads.map((item) => (
-                                <LeadCard key={item.lead_id} lead={item} theme={theme} cardWidth={cardWidth} />
-                            ))}
-                        </View>
-                    </ScrollView>
+                        contentContainerStyle={{ paddingHorizontal: 6, paddingTop: 12, paddingBottom: 100 }}
+                        initialNumToRender={8}
+                        maxToRenderPerBatch={4}
+                        windowSize={5}
+                        removeClippedSubviews={Platform.OS === 'android'}
+                    />
                 )}
 
                 {/* Bottom Footer & Drawers */}

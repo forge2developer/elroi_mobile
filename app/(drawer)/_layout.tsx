@@ -2,20 +2,25 @@ import Sidebar from '@/components/sidebar/Sidebar';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Drawer } from 'expo-router/drawer';
+import { Redirect } from 'expo-router';
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function DrawerLayout() {
-    const { role } = useAuth();
+    const { role, token, isLoading } = useAuth();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+
+    // Auth Guard: Redirect if not logged in
+    if (!token && !isLoading) {
+        return <Redirect href="/auth/login" />;
+    }
 
     const isAuthorized = role === 'admin' || role === 'Admin' || role === 'manager' || role === 'Manager';
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
-                key={role}
                 initialRouteName={isAuthorized ? "Master_dashboard" : "dashboard"}
                 backBehavior="none"
                 drawerContent={() => <Sidebar />}

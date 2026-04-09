@@ -6,61 +6,76 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "../../../context/AuthContext";
 import {
-    Bath,
-    Building2,
-    Calendar,
-    Car,
-    CheckSquare,
-    Clock,
-    Compass,
-    ExternalLink,
-    Eye,
-    EyeOff,
-    History,
-    Home,
-    Info,
-    LandPlot,
-    Layers,
-    LayoutGrid,
-    Mail,
-    MapPin,
-    MessageSquare,
-    Monitor,
-    PhoneCall,
-    Plus,
-    RefreshCw,
-    ServerCrash,
-    Sofa,
-    Star,
-    Trash2,
-    User,
+  Bath,
+  Building2,
+  Calendar,
+  Car,
+  CheckSquare,
+  Clock,
+  Compass,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  History,
+  Home,
+  Info,
+  LandPlot,
+  Layers,
+  LayoutGrid,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Monitor,
+  PhoneCall,
+  Plus,
+  RefreshCw,
+  ServerCrash,
+  Sofa,
+  Star,
+  Trash2,
+  User,
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    BackHandler,
-    FlatList,
-    Linking,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  BackHandler,
+  FlatList,
+  Image,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import {
-    SafeAreaView,
-    useSafeAreaInsets,
+  SafeAreaView,
+  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 
 import { BASE_URL } from "@/src/config/apiConfig";
 const API_BASE_URL = BASE_URL;
+
+const formatProfileImage = (path: string | null) => {
+  if (!path) return null;
+  if (!path.startsWith("http")) {
+    return `${API_BASE_URL}${path}`;
+  }
+  // Dev fix: Replace localhost with actual server IP if needed
+  if (path.includes("localhost") || path.includes("127.0.0.1")) {
+    return path.replace(/http:\/\/(localhost|127\.0\.0\.1):\d+/, API_BASE_URL);
+  }
+  return path;
+};
 
 function getTheme(isDark: boolean) {
   return {
@@ -93,6 +108,7 @@ const GET_LEAD_BY_ID = `
             status
             exe_user
             exe_user_name
+            exe_user_image
             project
             createdAt
             site_visits_completed
@@ -134,6 +150,7 @@ const GET_LEAD_BY_ID = `
                 id
                 user_id
                 user_name
+                user_image
                 stage
                 updates
                 reason
@@ -276,6 +293,7 @@ const GET_ORGANIZATION_USERS = `
                 firstName
                 lastName
                 email
+                profileImagePath
             }
             role
             isActive
@@ -377,29 +395,29 @@ function DetailRow({
 }
 
 function StatItem({ label, value, theme, color }: { label: string; value: number; theme: any; color: string }) {
-    return (
-        <View
-            className="p-4 rounded-[22px] border min-w-[145px] shadow-sm ml-2"
-            style={[{ 
-                backgroundColor: theme.cardBg, 
-                borderColor: theme.border,
-                shadowColor: color,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 2
-            }]}
-        >
-            <View className="flex-row items-center justify-between mb-1.5">
-                <Text className="text-[24px] font-black" style={[{ color }]}>
-                    {value}
-                </Text>
-            </View>
-            <Text className="text-[9px] font-black uppercase tracking-[1px] leading-3" style={[{ color: theme.textSecondary }]}>
-                {label}
-            </Text>
-        </View>
-    );
+  return (
+    <View
+      className="p-4 rounded-[22px] border min-w-[145px] shadow-sm ml-2"
+      style={[{
+        backgroundColor: theme.cardBg,
+        borderColor: theme.border,
+        shadowColor: color,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2
+      }]}
+    >
+      <View className="flex-row items-center justify-between mb-1.5">
+        <Text className="text-[24px] font-black" style={[{ color }]}>
+          {value}
+        </Text>
+      </View>
+      <Text className="text-[9px] font-black uppercase tracking-[1px] leading-3" style={[{ color: theme.textSecondary }]}>
+        {label}
+      </Text>
+    </View>
+  );
 }
 
 function LeadDetailsSkeleton({ theme, isDark, isLandscape }: any) {
@@ -592,6 +610,62 @@ export default function LeadDetailsScreen() {
   const currentStage = stages.find(
     (s) => s.name?.toLowerCase() === lead?.stage?.toLowerCase(),
   );
+  const [selectedExeIndex, setSelectedExeIndex] = useState(0);
+
+  useEffect(() => {
+    setSelectedExeIndex(0);
+  }, [id]);
+
+  const engagedUsers = React.useMemo(() => {
+    const usersMap = new Map();
+    const namesSet = new Set();
+    
+    // Always include current assigned first
+    if (lead?.exe_user) {
+      const exeId = String(lead.exe_user);
+      const exeName = lead.exe_user_name || "Unassigned";
+      usersMap.set(exeId, {
+        id: exeId,
+        name: exeName,
+        image: lead.exe_user_image,
+      });
+      if (exeName !== "Unassigned") {
+        namesSet.add(exeName.trim().toLowerCase());
+      }
+    }
+
+    // Add others who have activities, ensuring deduplication by ID AND Name
+    lead?.activities?.forEach((a: any) => {
+      const activityUserId = a.user_id ? String(a.user_id) : null;
+      const activityUserName = a.user_name?.trim() || "";
+      
+      if (activityUserId) {
+        const nameLower = activityUserName.toLowerCase();
+        
+        // Skip if ID already exists OR if it's the same name as existing
+        if (!usersMap.has(activityUserId) && 
+            (activityUserName === "" || !namesSet.has(nameLower))) {
+          
+          usersMap.set(activityUserId, {
+            id: activityUserId,
+            name: activityUserName || "Former Executive",
+            image: a.user_image,
+          });
+
+          if (activityUserName) {
+            namesSet.add(nameLower);
+          }
+        }
+      }
+    });
+
+    const result = Array.from(usersMap.values());
+    // If the only user is "Former Executive" with no ID, better to just show "Unassigned" from above if possible
+    return result.length > 0 ? result : (lead?.exe_user ? [] : [{ id: "none", name: "Unassigned" }]);
+  }, [lead]);
+
+  const currentViewedExe = engagedUsers[selectedExeIndex] || engagedUsers[0];
+
   const stageColor = currentStage?.color || theme.purple;
 
   const getStatusColor = (status: string) => {
@@ -622,7 +696,7 @@ export default function LeadDetailsScreen() {
       const userId = authUserId || "";
 
       if (!organization) {
-          throw new Error("No organization found in session context.");
+        throw new Error("No organization found in session context.");
       }
 
       const response = await fetch(`${API_BASE_URL}/graphql`, {
@@ -709,32 +783,32 @@ export default function LeadDetailsScreen() {
   const fetchStats = async () => {
     setStatsLoading(true);
     try {
-        const organization = authOrg || '';
-        const token = authToken || '';
+      const organization = authOrg || '';
+      const token = authToken || '';
 
-        if (!organization) return;
+      if (!organization) return;
 
-        const encodedOrg = encodeURIComponent(organization);
-        const headers = { Authorization: `Bearer ${token}` };
+      const encodedOrg = encodeURIComponent(organization);
+      const headers = { Authorization: `Bearer ${token}` };
 
-        const [adminRes, salesRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/dashboard/admin-stats?organization=${encodedOrg}`, { headers }).then(r => r.json()),
-            fetch(`${API_BASE_URL}/api/dashboard/sales-summary?organization=${encodedOrg}`, { headers }).then(r => r.json()),
-        ]);
+      const [adminRes, salesRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/dashboard/admin-stats?organization=${encodedOrg}`, { headers }).then(r => r.json()),
+        fetch(`${API_BASE_URL}/api/dashboard/sales-summary?organization=${encodedOrg}`, { headers }).then(r => r.json()),
+      ]);
 
-        if (adminRes.success || salesRes.success) {
-            setStats({
-                siteVisits: salesRes.data?.siteVisitDone || 0,
-                incomingMissed: adminRes.data?.missedCalls || 0,
-                ongoingMissed: 0, 
-                ongoingAnswered: 0, 
-                incomingAnswered: 0, 
-            });
-        }
+      if (adminRes.success || salesRes.success) {
+        setStats({
+          siteVisits: salesRes.data?.siteVisitDone || 0,
+          incomingMissed: adminRes.data?.missedCalls || 0,
+          ongoingMissed: 0,
+          ongoingAnswered: 0,
+          incomingAnswered: 0,
+        });
+      }
     } catch (error) {
-        console.error('[LeadDetail] Stats error:', error);
+      console.error('[LeadDetail] Stats error:', error);
     } finally {
-        setStatsLoading(false);
+      setStatsLoading(false);
     }
   };
 
@@ -773,6 +847,32 @@ export default function LeadDetailsScreen() {
       });
 
       setShowNotesModal(false);
+
+      toast.show({
+        placement: "top",
+        render: ({ id }) => {
+          const toastId = "toast-" + id;
+          return (
+            <Toast
+              nativeID={toastId}
+              action="success"
+              variant="solid"
+              bg={isDark ? "#111" : "#fff"}
+              borderWidth={1}
+              borderColor={isDark ? "#333" : "#ddd"}
+              borderRadius="$xl"
+              mt="$10"
+            >
+              <VStack space="xs">
+                <ToastTitle
+                  color={isDark ? "#fff" : "#111"}
+                >Note added successfully</ToastTitle>
+              </VStack>
+            </Toast>
+          );
+        },
+      });
+
       setNoteText("");
       fetchLeadDetails();
     } catch (err: any) {
@@ -1049,6 +1149,31 @@ export default function LeadDetailsScreen() {
         }),
       });
       fetchLeadDetails();
+
+      toast.show({
+        placement: "top",
+        render: ({ id }) => {
+          const toastId = "toast-" + id;
+          return (
+            <Toast
+              nativeID={toastId}
+              action="success"
+              variant="solid"
+              bg={isDark ? "#111" : "#fff"}
+              borderWidth={1}
+              borderColor={isDark ? "#333" : "#ddd"}
+              borderRadius="$xl"
+              mt="$10"
+            >
+              <VStack space="xs">
+                <ToastTitle
+                  color={isDark ? "#fff" : "#111"}
+                >Site visit marked as completed</ToastTitle>
+              </VStack>
+            </Toast>
+          );
+        },
+      });
     } catch (err) {
       Alert.alert("Error", "Failed to mark site visit as completed");
     } finally {
@@ -1116,6 +1241,31 @@ export default function LeadDetailsScreen() {
 
       setShowReqModal(false);
       fetchLeadDetails();
+
+      toast.show({
+        placement: "top",
+        render: ({ id }) => {
+          const toastId = "toast-" + id;
+          return (
+            <Toast
+              nativeID={toastId}
+              action="success"
+              variant="solid"
+              bg={isDark ? "#111" : "#fff"}
+              borderWidth={1}
+              borderColor={isDark ? "#333" : "#ddd"}
+              borderRadius="$xl"
+              mt="$10"
+            >
+              <VStack space="xs">
+                <ToastTitle
+                  color={isDark ? "#fff" : "#111"}
+                >Requirements updated successfully</ToastTitle>
+              </VStack>
+            </Toast>
+          );
+        },
+      });
     } catch (err) {
       Alert.alert("Error", "Failed to update requirements");
     } finally {
@@ -1242,12 +1392,12 @@ export default function LeadDetailsScreen() {
   const handleTabPress = (index: number) => {
     const tab = tabNames[index];
     if (tab !== lastActiveTab.current) {
-        lastActiveTab.current = tab;
-        setActiveTab(tab);
-        flatListRef.current?.scrollToIndex({
-          index,
-          animated: true,
-        });
+      lastActiveTab.current = tab;
+      setActiveTab(tab);
+      flatListRef.current?.scrollToIndex({
+        index,
+        animated: true,
+      });
     }
   };
 
@@ -1289,8 +1439,8 @@ export default function LeadDetailsScreen() {
       `Are you sure you want to merge ${secondaryLead.profile?.name || "this lead"} into ${lead?.profile?.name || "the current lead"}? This action cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Merge", 
+        {
+          text: "Merge",
           style: "destructive",
           onPress: () => handleMergeLead(secondaryLead)
         }
@@ -1312,10 +1462,10 @@ export default function LeadDetailsScreen() {
         },
         body: JSON.stringify({
           query: MERGE_LEAD,
-          variables: { 
-            organization, 
-            primaryLeadId: lead._id, 
-            secondaryLeadId: secondaryLead._id 
+          variables: {
+            organization,
+            primaryLeadId: lead._id,
+            secondaryLeadId: secondaryLead._id
           },
         }),
       });
@@ -1417,230 +1567,247 @@ export default function LeadDetailsScreen() {
           </Text>
         </View>
       )}
-        {/* Quick Profile Header */}
-        <View className="flex-row items-center p-4">
-          <View
-            className="items-center justify-center w-16 h-16 mr-4 border rounded-2xl"
-            style={{
-              backgroundColor: stageColor + "15",
-              borderColor: stageColor + "30",
-            }}
-          >
-            <Text className="text-2xl font-bold" style={{ color: stageColor }}>
-              {lead?.profile?.name?.charAt(0)?.toUpperCase()}
-            </Text>
-          </View>
-          <View className="flex-1">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <Text className="text-xl font-bold" style={{ color: theme.text }}>
-                  {canEdit ? lead?.profile?.name : "Protected Lead"}
-                </Text>
-                {(lead?.merge_id?.length > 0 || lead?.is_secondary) && (
-                  <View className="px-2 py-0.5 rounded-md bg-zinc-900 dark:bg-zinc-800">
-                    <Text className="text-[9px] font-black text-white uppercase tracking-tighter">Merged</Text>
-                  </View>
-                )}
-              </View>
-              <View
-                className="px-2 py-0.5 rounded-lg"
-                style={{ backgroundColor: theme.accentBg }}
-              >
-                <Text
-                  className="text-[10px] font-bold"
-                  style={{ color: theme.textSecondary }}
-                >
-                  #{lead?.profile_id}
-                </Text>
-              </View>
-            </View>
-            <View className="flex-row flex-wrap gap-2 mt-1">
-              {lead?.exe_user_name && (
-                <View className="flex-row items-center">
-                  <User
-                    size={12}
-                    color={theme.textSecondary}
-                    className="mr-1"
-                  />
-                  <Text
-                    className="text-xs"
-                    style={{ color: theme.textSecondary }}
-                  >
-                    Assigned: {lead.exe_user_name}
-                  </Text>
+      {/* Quick Profile Header */}
+      <View className="flex-row items-center p-4">
+        <View
+          className="items-center justify-center w-16 h-16 mr-4 border rounded-2xl"
+          style={{
+            backgroundColor: stageColor + "15",
+            borderColor: stageColor + "30",
+          }}
+        >
+          <Text className="text-2xl font-bold" style={{ color: stageColor }}>
+            {lead?.profile?.name?.charAt(0)?.toUpperCase()}
+          </Text>
+        </View>
+        <View className="flex-1">
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-xl font-bold" style={{ color: theme.text }}>
+                {canEdit ? lead?.profile?.name : "Protected Lead"}
+              </Text>
+              {(lead?.merge_id?.length > 0 || lead?.is_secondary) && (
+                <View className="px-2 py-0.5 rounded-md bg-zinc-900 dark:bg-zinc-800">
+                  <Text className="text-[9px] font-black text-white uppercase tracking-tighter">Merged</Text>
                 </View>
               )}
             </View>
-          </View>
-        </View>
-
-        {/* Quick Actions bar */}
-        <View className="flex-row gap-3 px-4 mb-4 mt-2">
-          <Pressable
-            onPress={handleCall}
-            className="flex-1 flex-row items-center justify-center p-3.5 rounded-2xl"
-            style={{
-              backgroundColor: theme.headerBg,
-              borderWidth: 1.5,
-              borderColor: stageColor,
-            }}
-          >
-            <PhoneCall size={18} color={stageColor} className="mr-2" />
-            <Text
-              className="text-[15px] font-bold"
-              style={{ color: stageColor }}
+            <View
+              className="px-2 py-0.5 rounded-lg"
+              style={{ backgroundColor: theme.accentBg }}
             >
-              Call
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              if (canEdit) setShowNotesModal(true);
-            }}
-            disabled={!canEdit}
-            className="flex-1 flex-row items-center justify-center p-3.5 rounded-2xl"
-            style={{
-              backgroundColor: isDark ? "#171717" : "#0f172a",
-              opacity: canEdit ? 1 : 0.5,
-            }}
-          >
-            <Plus size={18} color="#ffffff" className="mr-1.5" />
-            <Text className="text-[15px] font-bold text-white">
-              Add Note
-            </Text>
-          </Pressable>
-          {(canEdit || lead?.merge_id?.length > 0 || lead?.is_secondary) && (
-            <Pressable
-              onPress={() => {
-                if (lead?.merge_id?.length > 0 || lead?.is_secondary) {
-                  // Find first related lead to jump to
-                  const relatedId = lead.is_secondary ? lead.merged_into?.id : lead.merge_id?.[0]?.id;
-                  if (relatedId) {
-                    router.push({ pathname: "/(drawer)/leads/lead_detail", params: { id: relatedId } } as any);
-                  }
-                } else {
-                  setShowMergeModal(true);
-                }
-              }}
-              className="w-14 items-center justify-center rounded-2xl border relative"
-              style={{
-                borderColor: (lead?.merge_id?.length > 0 || lead?.is_secondary) ? theme.accent : theme.border,
-                backgroundColor: (lead?.merge_id?.length > 0 || lead?.is_secondary) ? theme.accent + "15" : theme.accentBg,
-              }}
-            >
-              <View 
-                className="absolute -top-2 px-1.5 py-0.5 rounded-full" 
-                style={{ backgroundColor: theme.accent, zIndex: 10 }}
+              <Text
+                className="text-[10px] font-bold"
+                style={{ color: theme.textSecondary }}
               >
-                <Text 
-                  className="text-[7px] font-black uppercase" 
-                  style={{ color: isDark ? '#000' : '#fff' }}
-                >
-                  { (lead?.merge_id?.length > 0 || lead?.is_secondary) ? "Merged" : "Merge" }
-                </Text>
-              </View>
-              <RefreshCw 
-                size={20} 
-                color={(lead?.merge_id?.length > 0 || lead?.is_secondary) ? theme.accent : theme.text} 
-              />
-            </Pressable>
-          )}
-        </View>
-
-        {/* Merged Leads Display */}
-        {(lead?.merge_id?.length > 0 || (lead?.is_secondary && lead?.merged_into)) && (
-          <View className="px-4 mb-4">
-            <View className="p-4 rounded-[28px] border" style={{ backgroundColor: theme.cardBg, borderColor: theme.border }}>
-              <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-[10px] font-black uppercase tracking-[1px]" style={{ color: theme.textSecondary }}>
-                  {lead?.is_secondary ? "Merged Into" : "Secondary Leads"}
-                </Text>
-                <View className="px-2 py-0.5 rounded-full bg-purple-500/10">
-                  <Text className="text-[9px] font-bold text-purple-500 uppercase">Merged</Text>
-                </View>
-              </View>
-              
-              {lead?.is_secondary && lead?.merged_into ? (
-                <Pressable 
-                  onPress={() => router.push({ pathname: "/(drawer)/leads/lead_detail", params: { id: lead.merged_into?.id } } as any)}
-                  className="flex-row items-center p-3 rounded-2xl bg-purple-500/5 border border-purple-500/10"
-                >
-                  <View className="w-10 h-10 rounded-xl bg-purple-500/20 items-center justify-center mr-3">
-                    <Text className="text-purple-500 font-bold">{lead.merged_into?.name?.charAt(0) || "?"}</Text>
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-bold" style={{ color: theme.text }}>{lead.merged_into?.name || "Unknown Lead"}</Text>
-                    <Text className="text-[10px]" style={{ color: theme.textSecondary }}>Primary Lead • Tap to swap</Text>
-                  </View>
-                  <RefreshCw size={14} color={theme.textSecondary} />
-                </Pressable>
-              ) : lead?.merge_id?.length > 0 ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {lead.merge_id.map((ml: any) => ml && (
-                    <Pressable 
-                      key={ml.id}
-                      onPress={() => router.push({ pathname: "/(drawer)/leads/lead_detail", params: { id: ml.id } } as any)}
-                      className="flex-row items-center p-3 mr-3 rounded-2xl bg-zinc-500/5 border border-zinc-500/10"
-                    >
-                      <View className="w-8 h-8 rounded-lg bg-zinc-500/20 items-center justify-center mr-3">
-                        <Text className="text-zinc-500 font-bold">{ml.name?.charAt(0) || "?"}</Text>
-                      </View>
-                      <View>
-                        <Text className="text-xs font-bold" style={{ color: theme.text }}>{ml.name || "Unknown"}</Text>
-                        <Text className="text-[9px]" style={{ color: theme.textSecondary }}>Secondary</Text>
-                      </View>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              ) : null}
+                #{lead?.profile_id}
+              </Text>
             </View>
           </View>
-        )}
-
-        {/* ─── Stats Section ─────────────────────────────────────────────── */}
-        <View className="mb-4 mt-2">
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
-            >
-                <StatItem label="Site Visits Completed" value={lead?.site_visits_completed || 0} theme={theme} color={stageColor} />
-                <StatItem label="Ongoing Missed Calls" value={stats.ongoingMissed} theme={theme} color={stageColor} />
-                <StatItem label="Ongoing Answered Calls" value={stats.ongoingAnswered} theme={theme} color={stageColor} />
-                <StatItem label="Incoming Missed Calls" value={stats.incomingMissed} theme={theme} color={stageColor} />
-                <StatItem label="Incoming Answered Calls" value={stats.incomingAnswered} theme={theme} color={stageColor} />
-            </ScrollView>
+          <View className="flex-row flex-wrap gap-2 mt-1">
+            {lead?.exe_user_name && (
+              <View className="flex-row items-center">
+                <User
+                  size={12}
+                  color={theme.textSecondary}
+                  className="mr-1"
+                />
+                <Text
+                  className="text-xs"
+                  style={{ color: theme.textSecondary }}
+                >
+                  Assigned: {lead.exe_user_name}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
+      </View>
+
+      {/* Quick Actions bar */}
+      <View className="flex-row gap-3 px-4 mb-4 mt-2">
+        <Pressable
+          onPress={handleCall}
+          className="flex-1 flex-row items-center justify-center p-3.5 rounded-2xl"
+          style={{
+            backgroundColor: theme.headerBg,
+            borderWidth: 1.5,
+            borderColor: stageColor,
+          }}
+        >
+          <PhoneCall size={18} color={stageColor} className="mr-2" />
+          <Text
+            className="text-[15px] font-bold"
+            style={{ color: stageColor }}
+          >
+            Call
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            if (canEdit) setShowNotesModal(true);
+          }}
+          disabled={!canEdit}
+          className="flex-1 flex-row items-center justify-center p-3.5 rounded-2xl"
+          style={{
+            backgroundColor: isDark ? "#171717" : "#0f172a",
+            opacity: canEdit ? 1 : 0.5,
+          }}
+        >
+          <Plus size={18} color="#ffffff" className="mr-1.5" />
+          <Text className="text-[15px] font-bold text-white">
+            Add Note
+          </Text>
+        </Pressable>
+        {(canEdit || lead?.merge_id?.length > 0 || lead?.is_secondary) && (
+          <Pressable
+            onPress={() => {
+              if (lead?.merge_id?.length > 0 || lead?.is_secondary) {
+                // Find first related lead to jump to
+                const relatedId = lead.is_secondary ? lead.merged_into?.id : lead.merge_id?.[0]?.id;
+                if (relatedId) {
+                  router.push({ pathname: "/(drawer)/leads/lead_detail", params: { id: relatedId } } as any);
+                }
+              } else {
+                setShowMergeModal(true);
+              }
+            }}
+            className="w-14 items-center justify-center rounded-2xl border relative"
+            style={{
+              borderColor: (lead?.merge_id?.length > 0 || lead?.is_secondary) ? theme.accent : theme.border,
+              backgroundColor: (lead?.merge_id?.length > 0 || lead?.is_secondary) ? theme.accent + "15" : theme.accentBg,
+            }}
+          >
+            <View
+              className="absolute -top-2 px-1.5 py-0.5 rounded-full"
+              style={{ backgroundColor: theme.accent, zIndex: 10 }}
+            >
+              <Text
+                className="text-[7px] font-black uppercase"
+                style={{ color: isDark ? '#000' : '#fff' }}
+              >
+                {(lead?.merge_id?.length > 0 || lead?.is_secondary) ? "Merged" : "Merge"}
+              </Text>
+            </View>
+            <RefreshCw
+              size={20}
+              color={(lead?.merge_id?.length > 0 || lead?.is_secondary) ? theme.accent : theme.text}
+            />
+          </Pressable>
+        )}
+      </View>
+
+      {/* Merged Leads Display */}
+      {(lead?.merge_id?.length > 0 || (lead?.is_secondary && lead?.merged_into)) && (
+        <View className="px-4 mb-4">
+          <View className="p-4 rounded-[28px] border" style={{ backgroundColor: theme.cardBg, borderColor: theme.border }}>
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-[10px] font-black uppercase tracking-[1px]" style={{ color: theme.textSecondary }}>
+                {lead?.is_secondary ? "Merged Into" : "Secondary Leads"}
+              </Text>
+              <View className="px-2 py-0.5 rounded-full bg-purple-500/10">
+                <Text className="text-[9px] font-bold text-purple-500 uppercase">Merged</Text>
+              </View>
+            </View>
+
+            {lead?.is_secondary && lead?.merged_into ? (
+              <Pressable
+                onPress={() => router.push({ pathname: "/(drawer)/leads/lead_detail", params: { id: lead.merged_into?.id } } as any)}
+                className="flex-row items-center p-3 rounded-2xl bg-purple-500/5 border border-purple-500/10"
+              >
+                <View className="w-10 h-10 rounded-xl bg-purple-500/20 items-center justify-center mr-3">
+                  <Text className="text-purple-500 font-bold">{lead.merged_into?.name?.charAt(0) || "?"}</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-bold" style={{ color: theme.text }}>{lead.merged_into?.name || "Unknown Lead"}</Text>
+                  <Text className="text-[10px]" style={{ color: theme.textSecondary }}>Primary Lead • Tap to swap</Text>
+                </View>
+                <RefreshCw size={14} color={theme.textSecondary} />
+              </Pressable>
+            ) : lead?.merge_id?.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {lead.merge_id.map((ml: any) => ml && (
+                  <Pressable
+                    key={ml.id}
+                    onPress={() => router.push({ pathname: "/(drawer)/leads/lead_detail", params: { id: ml.id } } as any)}
+                    className="flex-row items-center p-3 mr-3 rounded-2xl bg-zinc-500/5 border border-zinc-500/10"
+                  >
+                    <View className="w-8 h-8 rounded-lg bg-zinc-500/20 items-center justify-center mr-3">
+                      <Text className="text-zinc-500 font-bold">{ml.name?.charAt(0) || "?"}</Text>
+                    </View>
+                    <View>
+                      <Text className="text-xs font-bold" style={{ color: theme.text }}>{ml.name || "Unknown"}</Text>
+                      <Text className="text-[9px]" style={{ color: theme.textSecondary }}>Secondary</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : null}
+          </View>
+        </View>
+      )}
+
+      {/* ─── Stats Section ─────────────────────────────────────────────── */}
+      <View className="mb-4 mt-2">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+        >
+          <StatItem label="Site Visits Completed" value={lead?.site_visits_completed || 0} theme={theme} color={stageColor} />
+          <StatItem label="Ongoing Missed Calls" value={stats.ongoingMissed} theme={theme} color={stageColor} />
+          <StatItem label="Ongoing Answered Calls" value={stats.ongoingAnswered} theme={theme} color={stageColor} />
+          <StatItem label="Incoming Missed Calls" value={stats.incomingMissed} theme={theme} color={stageColor} />
+          <StatItem label="Incoming Answered Calls" value={stats.incomingAnswered} theme={theme} color={stageColor} />
+        </ScrollView>
+      </View>
 
       {/* Swipeable Cards Section */}
       <View className="flex-1">
-        {/* Swipeable Tabs Navigation */}
+        {/* Swipeable Tabs Navigation (Liquid Implementation) */}
         <View
-          className="flex-row justify-between mb-4 mx-4 mt-2 p-1 rounded-2xl border"
+          className="flex-row items-center mb-4 mx-4 mt-2 p-1 rounded-2xl border relative overflow-hidden"
           style={{ backgroundColor: isDark ? "#111111" : "#f1f5f9", borderColor: theme.border }}
         >
+          {/* Animated Active Tab Background Pill */}
+          <Animated.View
+            className="absolute rounded-xl"
+            style={[
+              {
+                top: 4,
+                width: (width - 40) / tabNames.length, // 40 = 32 (mx-16) + 8 (p-1+p-1 + gap?)
+                height: 38,
+                backgroundColor: isDark ? "#262626" : "#ffffff",
+                transform: [
+                  {
+                    translateX: scrollX.interpolate({
+                      inputRange: [0, width * (tabNames.length - 1)],
+                      outputRange: [4, (width - 40) * (tabNames.length - 1) / tabNames.length + 4],
+                    }),
+                  },
+                ],
+              },
+              Platform.select({
+                ios: {
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                },
+                android: {
+                  elevation: 2,
+                },
+              })
+            ]}
+          />
+
           {tabNames.map((tab, index) => {
             const isActive = activeTab === tab;
             return (
               <Pressable
                 key={tab}
                 onPress={() => handleTabPress(index)}
-                className="py-2.5 px-3 flex-1 items-center justify-center rounded-xl"
-                style={[{
-                  backgroundColor: isActive ? (isDark ? "#262626" : "#ffffff") : "transparent",
-                }, isActive && {
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: 0.1,
-                      shadowRadius: 2,
-                    },
-                    android: {
-                      elevation: 2,
-                    },
-                  })
-                }]}
+                className="py-2.5 px-3 flex-1 items-center justify-center rounded-xl z-20"
               >
                 <Text
                   className="text-[13px] tracking-tight"
@@ -1657,19 +1824,24 @@ export default function LeadDetailsScreen() {
         </View>
 
         {/* Swipeable Cards Container */}
-        <FlatList
+        <Animated.FlatList
           ref={flatListRef}
           data={tabNames}
           horizontal
           pagingEnabled
           scrollEnabled
           showsHorizontalScrollIndicator={false}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true }
+          )}
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           getItemLayout={getItemLayout}
           initialNumToRender={3}
           windowSize={3}
           maxToRenderPerBatch={3}
+          scrollEventThrottle={16}
           removeClippedSubviews={false}
           keyExtractor={(item) => item}
           renderItem={({ item: tab }) => (
@@ -1686,7 +1858,7 @@ export default function LeadDetailsScreen() {
             >
               {isLandscape && (canEdit || lead?.merge_id?.length > 0 || lead?.is_secondary) && (
                 <View className="absolute right-4 top-4 z-10">
-                   <Pressable
+                  <Pressable
                     onPress={() => {
                       if (lead?.merge_id?.length > 0 || lead?.is_secondary) {
                         const relatedId = lead.is_secondary ? lead.merged_into?.id : lead.merge_id?.[0]?.id;
@@ -1880,20 +2052,20 @@ export default function LeadDetailsScreen() {
                             >
                               {item.received
                                 ? new Date(item.received).toLocaleDateString(
-                                    undefined,
-                                    {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric",
-                                    },
-                                  )
+                                  undefined,
+                                  {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  },
+                                )
                                 : "N/A"}
                               {"  •  "}
                               {item.received
                                 ? new Date(item.received).toLocaleTimeString(
-                                    [],
-                                    { hour: "2-digit", minute: "2-digit" },
-                                  )
+                                  [],
+                                  { hour: "2-digit", minute: "2-digit" },
+                                )
                                 : ""}
                             </Text>
                           </View>
@@ -1974,10 +2146,10 @@ export default function LeadDetailsScreen() {
                                   <cell.icon
                                     size={12}
                                     color={cell.color}
-                                    className="mr-2 ml-2"
+                                    className="mr-2"
                                   />
                                   <Text
-                                    className="text-[9px] font-bold uppercase tracking-widest"
+                                    className="ml-2 text-[9px] font-bold uppercase tracking-widest"
                                     style={{ color: theme.textSecondary }}
                                   >
                                     {cell.label}
@@ -2008,157 +2180,167 @@ export default function LeadDetailsScreen() {
                     })()}
                   </InfoSection>
 
-                  {/* Executive Details Card */}
+                  {/* Executive Details Card (Carousel Support) */}
                   <InfoSection title="Executive Details" theme={theme}>
                     {(() => {
-                      const exeName = lead?.exe_user_name || "Unassigned";
+                      if (!currentViewedExe) return null;
+
+                      const exeName = currentViewedExe.name;
                       const initials =
                         exeName !== "Unassigned"
                           ? exeName
-                              .trim()
-                              .split(" ")
-                              .filter(Boolean)
-                              .slice(0, 2)
-                              .map((w: string) => w[0])
-                              .join("")
-                              .toUpperCase()
+                            .trim()
+                            .split(" ")
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .map((w: string) => w[0])
+                            .join("")
+                            .toUpperCase()
                           : "UN";
 
-                      // Calculate engagement stats from activities
+                      // Calculate engagement stats SPECIFIC to this executive in carousel
                       const exeStats = {
                         whatsapp: 0,
                         mail: 0,
                         call: 0,
                         sms: 0,
+                        notes: 0,
+                        site_visits: 0,
+                        follow_ups: 0,
                       };
-                      if (lead?.activities && lead?.exe_user) {
+                      if (lead?.activities && currentViewedExe.id) {
                         lead.activities.forEach((a: any) => {
-                          if (a.user_id === lead.exe_user) {
+                          if (String(a.user_id) === String(currentViewedExe.id)) {
                             const up = a.updates?.toLowerCase();
                             if (up === "whatsapp") exeStats.whatsapp++;
                             if (up === "mail") exeStats.mail++;
                             if (up === "phonecall" || up === "call")
                               exeStats.call++;
                             if (up === "sms") exeStats.sms++;
+                            if (up === "notes") exeStats.notes++;
+                            if (up === "site_visit") exeStats.site_visits++;
+                            if (up === "follow_up") exeStats.follow_ups++;
                           }
                         });
                       }
 
                       const engagementRows = [
-                        {
-                          icon: MessageSquare,
-                          label: "Whatsapp Engaged",
-                          count: exeStats.whatsapp,
-                          color: stageColor,
-                        },
-                        {
-                          icon: Mail,
-                          label: "Mail Engaged",
-                          count: exeStats.mail,
-                          color: stageColor,
-                        },
-                        {
-                          icon: PhoneCall,
-                          label: "Phone Call Engaged",
-                          count: exeStats.call,
-                          color: stageColor,
-                        },
-                        {
-                          icon: MessageSquare,
-                          label: "SMS Engaged",
-                          count: exeStats.sms,
-                          color: stageColor,
-                        },
+                        { label: "WHATSAPP", count: exeStats.whatsapp },
+                        { label: "MAIL", count: exeStats.mail },
+                        { label: "CALL", count: exeStats.call },
+                        { label: "SMS", count: exeStats.sms },
+                        { label: "NOTES", count: exeStats.notes },
+                        { label: "SITE VISITS", count: exeStats.site_visits },
+                        { label: "SV CONDUCTED", count: (String(currentViewedExe.id) === String(lead?.exe_user)) ? (lead?.site_visits_completed || 0) : 0 },
+                        { label: "FOLLOW-UPS", count: exeStats.follow_ups },
                       ];
 
                       return (
                         <View className="p-5">
-                          {/* Executive Name Header */}
-                          <View className="flex-row items-center mb-6">
+                          {/* Executive Name Header with Carousel Controls */}
+                          <View className="flex-row items-center mb-10">
+                            {/* Left Arrow (Looping) */}
+                            {engagedUsers.length > 1 && (
+                              <TouchableOpacity
+                                className="p-2 mr-2"
+                                onPress={() => setSelectedExeIndex(prev => (prev === 0 ? engagedUsers.length - 1 : prev - 1))}
+                              >
+                                <ChevronLeft size={20} color={theme.text} />
+                              </TouchableOpacity>
+                            )}
                             <View
-                              className="items-center justify-center mr-4 border h-14 w-14 rounded-2xl"
+                              className="items-center justify-center mr-4 h-12 w-12 rounded-full overflow-hidden"
                               style={{
-                                borderColor: stageColor + "30",
-                                backgroundColor: stageColor + "15",
+                                backgroundColor: isDark ? "#2a2a2a" : "#f1f1f1",
                               }}
                             >
-                              <User size={24} color={stageColor} />
+                              {currentViewedExe.image ? (
+                                <Image
+                                  source={{ uri: formatProfileImage(currentViewedExe.image) || "" }}
+                                  className="w-full h-full rounded-full"
+                                  resizeMode="cover"
+                                />
+                              ) : (
+                                <Text className="text-sm font-black" style={{ color: theme.textSecondary }}>{initials}</Text>
+                              )}
                             </View>
                             <View className="flex-1">
                               <Text
-                                className="text-[10px] font-bold uppercase tracking-widest mb-1"
-                                style={{ color: theme.textSecondary }}
-                              >
-                                Assigned Executive
-                              </Text>
-                              <Text
-                                className="text-lg font-bold"
+                                className="text-xl font-black capitalize tracking-tight"
                                 style={{ color: theme.text }}
                               >
                                 {exeName}
                               </Text>
-                              <View className="flex-row items-center mt-1">
-                                <View className="w-2 h-2 mr-2 bg-green-500 rounded-full" />
-                                <Text
-                                  className="text-[10px] font-bold uppercase tracking-wider"
-                                  style={{ color: theme.textSecondary }}
-                                >
-                                  Team Pre-Sales
-                                </Text>
-                              </View>
+                              <Text
+                                className="text-[10px] font-black uppercase tracking-[1.5px] mt-0.5"
+                                style={{ color: theme.textSecondary, opacity: 0.6 }}
+                              >
+                                {String(currentViewedExe.id) === String(lead?.exe_user) ? "CURRENT EXECUTIVE" : "PREVIOUS EXECUTIVE"}
+                              </Text>
                             </View>
-                            <TouchableOpacity
-                              className="p-2 border rounded-full"
-                              style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.accentBg,
-                              }}
-                            >
-                              <ExternalLink
-                                size={16}
-                                color={theme.textSecondary}
-                              />
-                            </TouchableOpacity>
+
+                            {/* Right Arrow (Looping) */}
+                            {engagedUsers.length > 1 && (
+                              <TouchableOpacity
+                                className="p-2 ml-2"
+                                onPress={() => setSelectedExeIndex(prev => (prev === engagedUsers.length - 1 ? 0 : prev + 1))}
+                              >
+                                <ChevronRight size={20} color={theme.text} />
+                              </TouchableOpacity>
+                            )}
+
+
                           </View>
 
-                          {/* Engagement Stats Grid */}
-                          <View
-                            className="flex-row flex-wrap"
-                            style={{ gap: 10 }}
-                          >
-                            {engagementRows.map((row) => (
-                              <View
-                                key={row.label}
-                                className="flex-1 min-w-[150px] p-5 rounded-[28px] border"
-                                style={{
-                                  backgroundColor: theme.bg,
-                                  borderColor: theme.border,
-                                }}
-                              >
-                                <View className="flex-row items-center justify-between mb-4">
-                                  <View
-                                    className="p-2.5 rounded-xl"
-                                    style={{
-                                      backgroundColor: row.color + "15",
-                                    }}
-                                  >
-                                    <row.icon size={15} color={row.color} />
-                                  </View>
-                                  <Text
-                                    className="text-xl font-black"
-                                    style={{ color: theme.text }}
-                                  >
+                          {/* Engagement Stats Grid (Strict 3-3-2 Layout) */}
+                          <View className="mt-2">
+                            {/* Row 1 */}
+                            <View className="flex-row items-center justify-between mb-10">
+                              {engagementRows.slice(0, 3).map((row) => (
+                                <View key={row.label} className="flex-1 items-center">
+                                  <Text className="text-[9px] font-bold uppercase tracking-[1px] mb-2.5 text-center" style={{ color: isDark ? "#a1a1aa" : "#71717a" }}>
+                                    {row.label} :
+                                  </Text>
+                                  <Text className="text-[22px] font-black text-center" style={{ color: theme.text }}>
                                     {row.count}
                                   </Text>
                                 </View>
-                                <Text
-                                  className="text-[10px] font-bold uppercase tracking-widest"
-                                  style={{ color: theme.textSecondary }}
-                                >
-                                  {row.label.replace(" Engaged", "")}
-                                </Text>
-                              </View>
-                            ))}
+                              ))}
+                            </View>
+
+                            {/* Row 2 */}
+                            <View className="flex-row items-center justify-between mb-10">
+                              {engagementRows.slice(3, 6).map((row) => (
+                                <View key={row.label} className="flex-1 items-center">
+                                  <Text className="text-[9px] font-bold uppercase tracking-[1px] mb-2.5 text-center" style={{ color: isDark ? "#a1a1aa" : "#71717a" }}>
+                                    {row.label} :
+                                  </Text>
+                                  <Text className="text-[22px] font-black text-center" style={{ color: theme.text }}>
+                                    {row.count}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+
+                            {/* Row 3 (Ensuring 3-column spacing with invisible placeholder) */}
+                            <View className="flex-row items-center">
+                              {engagementRows.slice(6, 8).map((row) => (
+                                <View key={row.label} className="flex-1 items-center">
+                                  <Text 
+                                    className="text-[9px] font-bold uppercase tracking-[1px] mb-2.5 text-center px-1" 
+                                    style={{ color: isDark ? "#a1a1aa" : "#71717a" }}
+                                    numberOfLines={1}
+                                  >
+                                    {row.label} :
+                                  </Text>
+                                  <Text className="text-[22px] font-black text-center" style={{ color: theme.text }}>
+                                    {row.count}
+                                  </Text>
+                                </View>
+                              ))}
+                              {/* Placeholder to maintain 3-column alignment */}
+                              <View className="flex-1" />
+                            </View>
                           </View>
                         </View>
                       );
@@ -2176,38 +2358,38 @@ export default function LeadDetailsScreen() {
                     onEdit={
                       canEdit
                         ? () => {
-                            setReqForm({
-                              sqft:
-                                lead?.propertyRequirement?.sqft?.toString() ||
-                                "",
-                              price_min:
-                                lead?.propertyRequirement?.price_min?.toString() ||
-                                "",
-                              price_max:
-                                lead?.propertyRequirement?.price_max?.toString() ||
-                                "",
-                              bhk: lead?.propertyRequirement?.bhk || [],
-                              floor: lead?.propertyRequirement?.floor || [],
-                              balcony:
-                                lead?.propertyRequirement?.balcony || false,
-                              bathroom_count:
-                                lead?.propertyRequirement?.bathroom_count?.toString() ||
-                                "",
-                              parking_needed:
-                                lead?.propertyRequirement?.parking_needed ||
-                                false,
-                              parking_count:
-                                lead?.propertyRequirement?.parking_count?.toString() ||
-                                "",
-                              furniture:
-                                lead?.propertyRequirement?.furniture || [],
-                              facing: lead?.propertyRequirement?.facing || [],
-                              plot_type:
-                                lead?.propertyRequirement?.plot_type || "",
-                            });
-                            setFloorInput("");
-                            setShowReqModal(true);
-                          }
+                          setReqForm({
+                            sqft:
+                              lead?.propertyRequirement?.sqft?.toString() ||
+                              "",
+                            price_min:
+                              lead?.propertyRequirement?.price_min?.toString() ||
+                              "",
+                            price_max:
+                              lead?.propertyRequirement?.price_max?.toString() ||
+                              "",
+                            bhk: lead?.propertyRequirement?.bhk || [],
+                            floor: lead?.propertyRequirement?.floor || [],
+                            balcony:
+                              lead?.propertyRequirement?.balcony || false,
+                            bathroom_count:
+                              lead?.propertyRequirement?.bathroom_count?.toString() ||
+                              "",
+                            parking_needed:
+                              lead?.propertyRequirement?.parking_needed ||
+                              false,
+                            parking_count:
+                              lead?.propertyRequirement?.parking_count?.toString() ||
+                              "",
+                            furniture:
+                              lead?.propertyRequirement?.furniture || [],
+                            facing: lead?.propertyRequirement?.facing || [],
+                            plot_type:
+                              lead?.propertyRequirement?.plot_type || "",
+                          });
+                          setFloorInput("");
+                          setShowReqModal(true);
+                        }
                         : undefined
                     }
                   >
@@ -2391,7 +2573,7 @@ export default function LeadDetailsScreen() {
                     nestedScrollEnabled={true}
                     showsHorizontalScrollIndicator={false}
                     className="mb-4 -mx-4 px-4"
-                    contentContainerStyle={{ 
+                    contentContainerStyle={{
                       paddingRight: 100,
                       flexDirection: 'row',
                       alignItems: 'center'
@@ -2703,20 +2885,20 @@ export default function LeadDetailsScreen() {
             <ScrollView className="max-h-96">
               {(stages.length > 0
                 ? (() => {
-                    const currentStageObj = stages.find(
-                      (s) =>
-                        s.name?.toLowerCase() === lead?.stage?.toLowerCase(),
-                    );
-                    if (!currentStageObj) return stages; // Case mismatch or stage deleted — show all
-                    if (
-                      !currentStageObj.nextStages ||
-                      currentStageObj.nextStages.length === 0
-                    )
-                      return []; // Match web behavior
-                    return stages.filter((s) =>
-                      currentStageObj.nextStages.includes(s.id || s._id),
-                    );
-                  })()
+                  const currentStageObj = stages.find(
+                    (s) =>
+                      s.name?.toLowerCase() === lead?.stage?.toLowerCase(),
+                  );
+                  if (!currentStageObj) return stages; // Case mismatch or stage deleted — show all
+                  if (
+                    !currentStageObj.nextStages ||
+                    currentStageObj.nextStages.length === 0
+                  )
+                    return []; // Match web behavior
+                  return stages.filter((s) =>
+                    currentStageObj.nextStages.includes(s.id || s._id),
+                  );
+                })()
                 : []
               ).map((s: any) => (
                 <TouchableOpacity
@@ -3475,7 +3657,7 @@ export default function LeadDetailsScreen() {
                 </View>
               ) : null}
             </ScrollView>
-            
+
             <TouchableOpacity
               onPress={() => setShowMergeModal(false)}
               className="items-center py-4 mt-4"

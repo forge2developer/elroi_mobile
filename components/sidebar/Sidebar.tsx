@@ -13,6 +13,7 @@ import {
     LayoutDashboard,
     LucideIcon,
     Moon,
+    Plus,
     Sun,
     User,
     Users,
@@ -78,28 +79,47 @@ function getTheme(isDark: boolean) {
 
 // ─── Menu Data Hook ──────────────────────────────────────────
 function useMenuData(role: string | null) {
-    return useMemo((): Section[] => [
-        {
-            title: 'Workspace',
-            items: [
-                {
-                    icon: LayoutDashboard,
-                    label: (role === 'admin' || role === 'manager') ? 'Master View' : 'Dashboard',
-                    route: (role === 'admin' || role === 'manager') ? '/(drawer)/Master_dashboard' : '/(drawer)/dashboard'
-                },
-                {
-                    icon: Users,
-                    label: 'Total Leads',
-                    route: '/(drawer)/leads/all_leads',
-                },
-                {
-                    icon: Calendar,
-                    label: 'Calendar',
-                    route: '/(drawer)/calendar',
-                }
-            ],
-        },
-    ], [role]);
+    return useMemo((): Section[] => {
+        const menuItems: MenuItem[] = [
+            {
+                icon: LayoutDashboard,
+                label: (role === 'admin' || role === 'manager') ? 'Master View' : 'Dashboard',
+                route: (role === 'admin' || role === 'manager') ? '/(drawer)/Master_dashboard' : '/(drawer)/dashboard'
+            },
+            {
+                icon: Users,
+                label: 'Total Leads',
+                route: '/(drawer)/leads/all_leads',
+            }
+        ];
+
+        // Only show "Add Lead" for all internal roles (exclude CP)
+        const normalizedRole = role?.toLowerCase() || '';
+        if (
+            normalizedRole !== 'cp' && 
+            normalizedRole !== 'channel partner' && 
+            !!normalizedRole
+        ) {
+            menuItems.push({
+                icon: Plus,
+                label: 'Add Lead',
+                route: '/(drawer)/leads/add_lead',
+            });
+        }
+
+        menuItems.push({
+            icon: Calendar,
+            label: 'Calendar',
+            route: '/(drawer)/calendar',
+        });
+
+        return [
+            {
+                title: 'Workspace',
+                items: menuItems,
+            },
+        ];
+    }, [role]);
 }
 
 // ─── Components ──────────────────────────────────────────────
@@ -213,7 +233,7 @@ export default function Sidebar() {
     const theme = getTheme(isDark);
     const pathname = usePathname();
     const router = useRouter();
-    const { setThemePreference } = useThemeContext();
+    const { setThemePreference, themePreference } = useThemeContext();
     const { role, organization, logout, name, email, profileImage } = useAuth();
     const insets = useSafeAreaInsets();
 
@@ -337,8 +357,9 @@ export default function Sidebar() {
 
                 <Pressable
                     onPress={async () => {
-                        await logout();
+                        // Navigate first to avoid race conditions with nullified auth state
                         router.replace('/auth/login');
+                        await logout();
                         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                     }}
                     className="mt-3 flex-row items-center justify-center py-3 rounded-2xl"

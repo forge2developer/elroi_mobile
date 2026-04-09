@@ -136,7 +136,7 @@ function DashboardCard({
                     gap: 16,
                     paddingVertical: 18,
                     paddingHorizontal: 18,
-                    borderRadius: 16,
+                    borderRadius: 12,
                     borderWidth: 1,
                     borderColor: theme.border,
                     backgroundColor: theme.cardBg,

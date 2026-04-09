@@ -1,7 +1,7 @@
 import ScreenWrapper from "@/components/sidebar/ScreenWrapper";
 import { useRouter } from "expo-router";
 import { Building2, ExternalLink, MapPin, User } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     BackHandler,
@@ -209,97 +209,7 @@ export default function CalendarScreen() {
     fetchCalendarData();
   }, [fetchCalendarData]);
 
-  const renderItem = useCallback(
-    (item: CalendarItem) => {
-      const isBooking = item.type === "booking";
-      const accentColor = isBooking
-        ? themeColors.accentBooked
-        : item.isCompleted
-          ? themeColors.accentCompleted
-          : themeColors.accentScheduled;
-      return (
-        <View
-          style={[
-            styles.itemContainer,
-            {
-              backgroundColor: themeColors.cardBg,
-              borderColor: themeColors.border,
-            },
-          ]}
-        >
-          <View
-            style={[styles.statusIndicator, { backgroundColor: accentColor }]}
-          />
-          <View style={styles.itemContent}>
-            <View style={styles.headerRow}>
-              <Text
-                style={[styles.itemTitle, { color: themeColors.text }]}
-                numberOfLines={1}
-              >
-                {item.title}
-              </Text>
-              <Text style={[styles.itemTime, { color: themeColors.textMuted }]}>
-                {item.time}
-              </Text>
-            </View>
-            <View style={styles.detailsContainer}>
-              <View style={styles.badgeWrapper}>
-                <Text
-                  style={[
-                    styles.badgeText,
-                    { color: accentColor, backgroundColor: `${accentColor}1A` },
-                  ]}
-                >
-                  {isBooking
-                    ? "Booked Unit"
-                    : item.isCompleted
-                      ? "Completed Visit"
-                      : "Scheduled Visit"}
-                </Text>
-              </View>
-              <View style={styles.detailRow}>
-                <User size={12} color={themeColors.textMuted} />
-                <Text
-                  style={[styles.detailText, { color: themeColors.textMuted }]}
-                >
-                  {item.subtitle}
-                </Text>
-              </View>
-              {item.projectName && (
-                <View style={styles.detailRow}>
-                  <Building2 size={12} color={themeColors.textMuted} />
-                  <Text
-                    style={[
-                      styles.detailText,
-                      { color: themeColors.textMuted },
-                    ]}
-                  >
-                    {item.projectName}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-          {item.leadUuid && (
-            <TouchableOpacity
-              style={styles.navBtn}
-              onPress={() =>
-                router.push({
-                  pathname: "/(drawer)/leads/lead_detail",
-                  params: { id: item.leadUuid, from: 'calendar' },
-                } as any)
-              }
-            >
-              <ExternalLink size={20} color={themeColors.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
-      );
-    },
-    [themeColors, router],
-  );
-
-  const todayStr = React.useMemo(() => formatDateKey(new Date()), []);
+  const todayStr = useMemo(() => formatDateKey(new Date()), []);
 
   return (
     <ScreenWrapper
@@ -388,7 +298,13 @@ export default function CalendarScreen() {
             </View>
             <AgendaList
               sections={items}
-              renderItem={({ item }) => renderItem(item as CalendarItem)}
+              renderItem={({ item }) => (
+                <CalendarItemComponent 
+                  item={item as CalendarItem} 
+                  themeColors={themeColors} 
+                  router={router} 
+                />
+              )}
               sectionStyle={{ backgroundColor: themeColors.bg }}
               contentContainerStyle={{ paddingBottom: bottom + 40 }}
               renderSectionHeader={(info: any) => {
@@ -413,6 +329,104 @@ export default function CalendarScreen() {
     </ScreenWrapper>
   );
 }
+
+// ─── Sub-components ─────────────────────────────────────────────────────────────
+
+const CalendarItemComponent = React.memo(({ 
+    item, 
+    themeColors, 
+    router 
+}: { 
+    item: CalendarItem; 
+    themeColors: any; 
+    router: any 
+}) => {
+    const isBooking = item.type === "booking";
+    const accentColor = isBooking
+      ? themeColors.accentBooked
+      : item.isCompleted
+        ? themeColors.accentCompleted
+        : themeColors.accentScheduled;
+
+    return (
+      <View
+        style={[
+          styles.itemContainer,
+          {
+            backgroundColor: themeColors.cardBg,
+            borderColor: themeColors.border,
+          },
+        ]}
+      >
+        <View
+          style={[styles.statusIndicator, { backgroundColor: accentColor }]}
+        />
+        <View style={styles.itemContent}>
+          <View style={styles.headerRow}>
+            <Text
+              style={[styles.itemTitle, { color: themeColors.text }]}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+            <Text style={[styles.itemTime, { color: themeColors.textMuted }]}>
+              {item.time}
+            </Text>
+          </View>
+          <View style={styles.detailsContainer}>
+            <View style={styles.badgeWrapper}>
+              <Text
+                style={[
+                  styles.badgeText,
+                  { color: accentColor, backgroundColor: `${accentColor}1A` },
+                ]}
+              >
+                {isBooking
+                  ? "Booked Unit"
+                  : item.isCompleted
+                    ? "Completed Visit"
+                    : "Scheduled Visit"}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <User size={12} color={themeColors.textMuted} />
+              <Text
+                style={[styles.detailText, { color: themeColors.textMuted }]}
+              >
+                {item.subtitle}
+              </Text>
+            </View>
+            {item.projectName && (
+              <View style={styles.detailRow}>
+                <Building2 size={12} color={themeColors.textMuted} />
+                <Text
+                  style={[
+                    styles.detailText,
+                    { color: themeColors.textMuted },
+                  ]}
+                >
+                  {item.projectName}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+        {item.leadUuid && (
+          <TouchableOpacity
+            style={styles.navBtn}
+            onPress={() =>
+              router.push({
+                pathname: "/(drawer)/leads/lead_detail",
+                params: { id: item.leadUuid, from: 'calendar' },
+              } as any)
+            }
+          >
+            <ExternalLink size={20} color={themeColors.textMuted} />
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
